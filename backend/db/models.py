@@ -31,10 +31,11 @@ class Doctor(Base):
     dept_id = Column(Integer, ForeignKey("departments.id"))
     hospital_id = Column(Integer, ForeignKey("hospitals.id"))
 
-    doctor_name = Column(String(150), nullable=False)
-    qualification = Column(String(100))
-    available_days = Column(String(100))
+    doctor_name = Column(String(250), nullable=False)
+    qualification = Column(String(300))
+    available_days = Column(String(300))
     max_tokens_per_day = Column(Integer)
+    designation = Column(String(300))
 
     hospital = relationship("Hospital", back_populates="doctors")
     department = relationship("Department", back_populates="doctors")
