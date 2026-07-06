@@ -1,0 +1,1 @@
+from backend.nlp.gemini_client import ask_gemini
