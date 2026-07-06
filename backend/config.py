@@ -12,3 +12,7 @@ DB_NAME = os.getenv("DB_NAME")
 
 # Sarvam API Key (for later)
 SARVAM_API_KEY = os.getenv("SARVAM_API_KEY")
+
+# Validation
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY is missing from .env")
