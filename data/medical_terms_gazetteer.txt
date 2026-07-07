@@ -1,0 +1,111 @@
+# ==========================
+# HOSPITALS
+# ==========================
+
+Ananthapuri Hospital & Research Institute
+General Hospital Thiruvananthapuram
+Government Medical College Thiruvananthapuram
+Medical College Kozhikode
+District Hospital Thrissur
+
+# ==========================
+# DEPARTMENTS
+# ==========================
+
+Anaesthesiology
+Cancer Care
+Cardiology
+Cardio Thoracic & Vascular Surgery
+Child Development Centre
+Critical Care
+Dental Maxillofacial Surgery
+Dermatology
+ENT
+Emergency Medicine
+Gastroenterology
+Infertility & Laparoscopy
+Interventional Radiology
+Neonatology
+Nephrology
+Neurology
+Neurosurgery
+Obstetrics & Gynaecology
+Orthopaedics
+Paediatrics
+Physiotherapy
+Pulmonology
+Urology
+
+# ==========================
+# MALAYALAM / COMMON ALIASES
+# ==========================
+
+Hrudayam=Cardiology
+Heart=Cardiology
+
+Njarambu=Neurology
+Brain=Neurology
+
+Elumbu=Orthopaedics
+Bone=Orthopaedics
+Ortho=Orthopaedics
+
+Chevi=ENT
+Mooku=ENT
+Thonda=ENT
+
+Skin=Dermatology
+Tholi=Dermatology
+
+Kannu=Ophthalmology
+Eye=Ophthalmology
+
+Kuttikal=Paediatrics
+Children=Paediatrics
+
+Pennu=Obstetrics & Gynaecology
+Gynecology=Obstetrics & Gynaecology
+Gynaecology=Obstetrics & Gynaecology
+
+Kidney=Nephrology
+Urine=Urology
+Cancer=Cancer Care
+
+# ==========================
+# COMMON ENGLISH WORDS
+# ==========================
+
+Hospital
+Doctor
+Department
+OP
+Token
+Appointment
+Booking
+Cancel
+Status
+Available
+Unavailable
+Morning
+Evening
+Today
+Tomorrow
+
+# ==========================
+# COMMON MALAYALAM WORDS
+# ==========================
+
+ആശുപത്രി
+ഡോക്ടർ
+ടോക്കൺ
+ഒ.പി
+അപ്പോയിന്റ്മെന്റ്
+ബുക്കിംഗ്
+റദ്ദാക്കുക
+സ്റ്റാറ്റസ്
+ലഭ്യമാണോ
+ഇന്ന്
+നാളെ
+രാവിലെ
+വൈകുന്നേരം
+ലീവ്
