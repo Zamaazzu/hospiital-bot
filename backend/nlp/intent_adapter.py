@@ -9,8 +9,8 @@ def adapt_intent_result(user_query, extracted_result):
         "intent": extracted_result.get("intent"),
         "user_query": user_query,
         "department": slots.get("department"),
-        "doctor": slots.get("doctor_name"),
-        "date": slots.get("preferred_date"),
-        "time": slots.get("preferred_time"),
-        "ticket_number": slots.get("ticket_number")
+        "doctor": slots.get("doctor"),
+        "date": slots.get("date"),
+        "time": slots.get("time"),
+        "ticket_number": slots.get("token_number")
     }

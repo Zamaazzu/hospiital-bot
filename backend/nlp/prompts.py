@@ -5,7 +5,7 @@ def build_prompt(intent_result, database_result=None):
 
     intent = intent_result.get("intent")
 
-    if intent == "book_op":
+    if intent == "token_booking":
         return _build_booking_prompt(intent_result, database_result)
 
     elif intent == "doctor_availability":
@@ -14,7 +14,7 @@ def build_prompt(intent_result, database_result=None):
     elif intent == "token_status":
         return _build_token_prompt(intent_result, database_result)
 
-    elif intent == "hospital_info":
+    elif intent == "op_enquiry":
         return _build_hospital_prompt(intent_result, database_result)
 
     else:
