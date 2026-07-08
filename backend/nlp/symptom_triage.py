@@ -76,6 +76,8 @@ SYMPTOM_MAP = {
     "hair fall": "Dermatology",
     "mudi pokal": "Dermatology",
     "mudi kozhichil": "Dermatology",
+    "mukhath paad": "Dermatology",
+    "paad": "Dermatology",
 
     # ── ENT ───────────────────────────────────────────────
     "chevi vedana": "ENT",
@@ -124,6 +126,9 @@ SYMPTOM_MAP = {
     "kunjikku": "Paediatrics",
     "mon pani": "Paediatrics",
     "mol pani": "Paediatrics",
+    "monu pani": "Paediatrics",
+    "molku pani": "Paediatrics",
+    "makkalku pani": "Paediatrics",
 
     # ── Neonatology ───────────────────────────────────────
     "newborn baby": "Neonatology",
@@ -275,3 +280,12 @@ def symptom_triage(text: str) -> str:
             return SYMPTOM_MAP[symptom]
 
     return "Emergency Medicine"  # default fallback
+
+def is_symptom_query(text: str) -> bool:
+    """Check if text contains any symptom phrase"""
+    text_lower = text.lower()
+    sorted_symptoms = sorted(SYMPTOM_MAP.keys(), key=len, reverse=True)
+    for symptom in sorted_symptoms:
+        if symptom in text_lower:
+            return True
+    return False

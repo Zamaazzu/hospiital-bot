@@ -1,6 +1,14 @@
 # backend/nlp/test_muril.py
 
-from intent_extractor import extract_intent_slots, load_model
+import sys
+import os
+from pathlib import Path
+
+# Add project root to path
+project_root = Path(__file__).parent.parent.parent
+sys.path.append(str(project_root))
+
+from backend.nlp.intent_extractor import extract_intent_slots, load_model
 
 # Load model first
 load_model()
@@ -62,6 +70,31 @@ real_world_queries = [
     ("appointment venam",            "token_booking"),
 ]
 
+# ── Symptom-Based Test Queries ────────────────────────────
+symptom_queries = [
+    # Pure symptom complaints (should be token_booking)
+    ("enikku nenju vedana undu",          "token_booking"),
+    ("ente monu pani",                    "token_booking"),
+    ("ente mol pani",                     "token_booking"),
+    ("kalinu vedana undu",                "token_booking"),
+    ("vayar vedana",                      "token_booking"),
+    ("thalavedhana undu",                 "token_booking"),
+    ("chevi vedana",                      "token_booking"),
+    ("fever undu",                        "token_booking"),
+    ("tol vedana",                        "token_booking"),
+    ("cough undu",                        "token_booking"),
+
+    # Symptom + doctor question (should be doctor_availability)
+    ("nenju vedana undu, doctor undo?",  "doctor_availability"),
+    ("ente monu pani, doctor available?", "doctor_availability"),
+    ("fever undu, doctor free aano?",    "doctor_availability"),
+
+    # Symptom + OP question (should be op_enquiry)
+    ("vayar vedana undu, OP undo?",      "op_enquiry"),
+    ("chevi vedana, OP timing enthu?",   "op_enquiry"),
+    ("fever undu, OP open aano?",        "op_enquiry"),
+]
+
 # ── Run Standard Tests ────────────────────────────────────
 print("=" * 60)
 print("STANDARD TEST RESULTS")
@@ -112,27 +145,63 @@ print("\n" + "=" * 60)
 print(f"Real World Accuracy: {rw_correct}/{rw_total} = {rw_correct/rw_total*100:.1f}%")
 print("=" * 60)
 
+# ── Run Symptom Tests ─────────────────────────────────────
+print("\n" + "=" * 60)
+print("SYMPTOM-BASED TEST RESULTS")
+print("=" * 60)
+
+symptom_correct = 0
+symptom_total = len(symptom_queries)
+
+for query, expected in symptom_queries:
+    result = extract_intent_slots(query)
+    intent = result["intent"]
+    slots = result["slots"]
+    has_symptom = slots.get("has_symptom", False)
+    department = slots.get("department", "None")
+    status = "✅" if intent == expected else "❌"
+
+    if intent == expected:
+        symptom_correct += 1
+
+    print(f"\n{status} Query:    {query}")
+    print(f"   Intent:   {intent} (expected: {expected})")
+    print(f"   Dept:     {department}")
+    print(f"   Symptom:  {has_symptom}")
+
+print("\n" + "=" * 60)
+print(f"Symptom Accuracy: {symptom_correct}/{symptom_total} = {symptom_correct/symptom_total*100:.1f}%")
+print("=" * 60)
+
 # ── Final Summary ─────────────────────────────────────────
 print("\n" + "=" * 60)
 print("FINAL SUMMARY")
 print("=" * 60)
 print(f"Standard Test:   {correct}/{total} = {correct/total*100:.1f}%")
 print(f"Real World Test: {rw_correct}/{rw_total} = {rw_correct/rw_total*100:.1f}%")
+print(f"Symptom Test:    {symptom_correct}/{symptom_total} = {symptom_correct/symptom_total*100:.1f}%")
 
-if rw_correct/rw_total >= 0.85:
-    print("\n✅ Model is performing well - not overfitting")
-elif rw_correct/rw_total >= 0.70:
-    print("\n⚠️  Model is okay but slightly overfit - acceptable for demo")
+overall_accuracy = (correct + rw_correct + symptom_correct) / (total + rw_total + symptom_total) * 100
+print(f"Overall Accuracy: {overall_accuracy:.1f}%")
+
+if overall_accuracy >= 85:
+    print("\n✅ Model is performing excellently!")
+elif overall_accuracy >= 75:
+    print("\n⚠️  Model is performing well - acceptable for production")
 else:
-    print("\n❌ Model is overfitting - needs more diverse training data")
-print("=" * 60)
-# paste at bottom of muril_test.py temporarily
+    print("\n❌ Model needs improvement")
 
-print("\n--- FAILED QUERIES ---")
-for query, expected in real_world_queries:
+print("=" * 60)
+
+# ── Failed Queries Analysis ───────────────────────────────
+print("\n--- FAILED QUERIES ANALYSIS ---")
+all_queries = test_queries + real_world_queries + symptom_queries
+for query, expected in all_queries:
     result = extract_intent_slots(query)
     intent = result["intent"]
     if intent != expected:
         print(f"❌ '{query}'")
         print(f"   Expected: {expected}")
         print(f"   Got:      {intent}")
+        print(f"   Confidence: {result.get('confidence', 'N/A')}")
+        print()

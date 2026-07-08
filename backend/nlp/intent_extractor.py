@@ -6,7 +6,7 @@ import torch
 from pathlib import Path
 from fuzzywuzzy import process, fuzz
 from transformers import AutoTokenizer, AutoModelForSequenceClassification
-from symptom_triage import symptom_triage, SYMPTOM_MAP
+from .symptom_triage import symptom_triage, SYMPTOM_MAP, is_symptom_query
 
 # ── Paths ─────────────────────────────────────────────────────
 BASE_DIR  = Path(__file__).resolve().parent.parent.parent
@@ -63,7 +63,7 @@ KEYWORD_RULES = {
         "token venam", "appointment venam",
         "slot venam", "kanam", "kaanam",
         "edukkanam", "pokanam", "doctor kanam",
-        "slot veno", "ravile slot",
+        "slot veno", "ravile slot", "tol vedana",
     ],
     "token_status": [
         "status", "turn", "eppo vilikum",
@@ -72,14 +72,16 @@ KEYWORD_RULES = {
         "token evide", "token call aayo",
     ],
     "doctor_availability": [
-        "doctor undo", "doctor und", "available",
+        "doctor undo", "doctor und",
         "duty", "free", "doctor innu",
         "doctor nale", "doctor varmo",
+        # removed generic "available" — too broad, caused false matches
     ],
     "op_enquiry": [
         "OP undo", "OP und", "OP timing",
         "OP schedule", "OP open", "OP nale",
         "OP innu", "enthu cheyyum", "OP?",
+        "OP available", "is OP",
     ],
 }
 
@@ -138,28 +140,38 @@ def is_symptom_query(text: str) -> bool:
 def extract_department(text: str) -> str | None:
     text_lower = text.lower()
 
-    # Step 1: Check gazetteer aliases
+    if is_symptom_query(text):
+        return symptom_triage(text)
+
     for alias, official in alias_map.items():
         if alias in text_lower:
             return official
 
-    # Step 2: Fuzzy match
+    if len(text.split()) < 2:
+        return None
+
     match, score = process.extractOne(
         text,
         DEPARTMENTS,
-        scorer=fuzz.partial_ratio
+        scorer=fuzz.token_sort_ratio   # changed scorer — more reliable than partial_ratio
     )
-    if score >= 70:
+    if score >= 85:
         return match
 
     return None
 
 # ── Doctor Name Extraction ────────────────────────────────────
 def extract_doctor(text: str) -> str | None:
-    pattern = r'\b(?:Dr\.?|Doctor)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)'
-    match   = re.search(pattern, text, re.IGNORECASE)
+    # Require capital letter name right after Dr./Doctor
+    pattern = r'\b(?:Dr\.?|Doctor)\s+([A-Z][a-z]+(?:\s+[A-Z][a-z]+)?)\b'
+    match   = re.search(pattern, text)  # removed IGNORECASE
     if match:
-        return match.group(1).strip()
+        name = match.group(1).strip()
+        stop_words = ["nale", "innu", "today", "tomorrow", "morning",
+                      "evening", "night", "ravile", "vaikunneram",
+                      "uchakku", "raatri"]
+        name_parts = [p for p in name.split() if p.lower() not in stop_words]
+        return " ".join(name_parts) if name_parts else None
     return None
 
 # ── Token Number Extraction ───────────────────────────────────
@@ -222,20 +234,39 @@ def extract_time(text: str) -> str | None:
 # ── Keyword Backup Intent ─────────────────────────────────────
 def keyword_backup(text: str) -> str | None:
     text_lower = text.lower()
-    scores     = {intent: 0 for intent in KEYWORD_RULES}
 
+    # Priority phrases checked first — fixes ambiguous overlaps
+    priority_phrases = {
+        "booking confirmed": "token_status",
+        "is my booking": "token_status",
+        "booking cancel": "cancel_token",
+        "cancel cheyyu": "cancel_token",
+        "cancel cheyyanam": "cancel_token",
+        "OP available": "op_enquiry",
+        "is OP": "op_enquiry",
+        "token vangan": "token_booking",      
+        "vangan varunnu": "token_booking",
+        "kanaanam": "token_booking",          
+        "doctor kanaanam": "token_booking",   
+        "pettannu": "token_booking",  
+    }
+    for phrase, intent in priority_phrases.items():
+        if phrase in text_lower:
+            return intent
+
+    # Normal keyword scoring as fallback
+    scores = {intent: 0 for intent in KEYWORD_RULES}
     for intent, keywords in KEYWORD_RULES.items():
         for keyword in keywords:
             if keyword in text_lower:
                 scores[intent] += 1
 
     best_intent = max(scores, key=scores.get)
-
     if scores[best_intent] > 0:
         return best_intent
-
     return None
 
+# ── Main Function (Person 4 calls this) ──────────────────────
 # ── Main Function (Person 4 calls this) ──────────────────────
 def extract_intent_slots(text: str) -> dict:
 
@@ -247,19 +278,7 @@ def extract_intent_slots(text: str) -> dict:
             "error"     : "Model not loaded. Call load_model() first."
         }
 
-    # ── Step 0: Symptom check before model ───────────────────
-    if is_symptom_query(text):
-        dept = symptom_triage(text)
-        return {
-            "intent"    : "token_booking",
-            "confidence": 1.0,
-            "slots"     : {
-                "department": dept,
-                "symptom"   : text
-            }
-        }
-
-    # ── Step 1: Model prediction ──────────────────────────────
+    # ── Step 1: Always run the model first (no more intent hijacking) ─
     inputs = tokenizer(
         text,
         return_tensors="pt",
@@ -276,23 +295,7 @@ def extract_intent_slots(text: str) -> dict:
 
     predicted_intent = INTENT_LABELS[pred_idx]
 
-    # ── Step 2: Confidence check ──────────────────────────────
-    if confidence >= 0.85:
-        final_intent = predicted_intent
-
-    elif confidence >= 0.60:
-        backup       = keyword_backup(text)
-        final_intent = backup if backup else predicted_intent
-
-    else:
-        return {
-            "intent"    : "unclear",
-            "confidence": round(confidence, 4),
-            "slots"     : {},
-            "reply"     : "Sorry, could you please rephrase that?"
-        }
-
-    # ── Step 3: Slot extraction ───────────────────────────────
+    # ── Step 2: Extract all slots (including symptom-based department) ─
     slots = {
         "department"  : extract_department(text),
         "doctor"      : extract_doctor(text),
@@ -301,15 +304,40 @@ def extract_intent_slots(text: str) -> dict:
         "token_number": extract_token_number(text),
     }
 
+    # Add symptom detection info
+    if is_symptom_query(text):
+        dept_from_symptom = symptom_triage(text)
+        if dept_from_symptom and not slots.get("department"):
+            slots["department"] = dept_from_symptom
+        slots["has_symptom"] = True
+
     # Remove None values
     slots = {k: v for k, v in slots.items() if v is not None}
 
-    # ── Step 4: Return result ─────────────────────────────────
+    # ── Step 3: Confidence-based intent resolution ─────────────────
+    if confidence >= 0.85:
+        final_intent = predicted_intent
+
+    elif confidence >= 0.45:
+        backup       = keyword_backup(text)
+        final_intent = backup if backup else predicted_intent
+
+    else:
+        # Low confidence - but if we found department via symptom, default to op_enquiry
+        if slots.get("department"):
+            final_intent = "op_enquiry"
+            confidence = 0.65  # mark as resolved guess
+        else:
+            return {
+                "intent"    : "unclear",
+                "confidence": round(confidence, 4),
+                "slots"     : {},
+                "reply"     : "Sorry, could you please rephrase that?"
+            }
+
+    # ── Step 4: Return result ─────────────────────────────────────
     return {
         "intent"    : final_intent,
         "confidence": round(confidence, 4),
         "slots"     : slots,
     }
-
-# ── Load on startup ───────────────────────────────────────────
-load_model()
