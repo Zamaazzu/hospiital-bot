@@ -16,9 +16,7 @@ ENV/
 .env
 
 # Models
-models/*.pt
-models/*.pth
-models/*.bin
+models/*
 !models/.gitkeep
 
 # Data files
