@@ -59,10 +59,11 @@ SYMPTOM_MAP = {
     "shoulder pain": "Orthopaedics",
     "elbow": "Orthopaedics",
     "arthritis": "Orthopaedics",
+    "tol vedana":"Orthopaedics",
 
     # ── Dermatology ───────────────────────────────────────
-    "tol rогаm": "Dermatology",
-    "tol vedana": "Dermatology",
+    "mukha kuru": "Dermatology",
+    "skin vedana": "Dermatology",
     "skin problem": "Dermatology",
     "skin rash": "Dermatology",
     "itching": "Dermatology",
@@ -71,9 +72,10 @@ SYMPTOM_MAP = {
     "acne": "Dermatology",
     "eczema": "Dermatology",
     "psoriasis": "Dermatology",
-    "tol": "Dermatology",
+    "kurukkal": "Dermatology",
     "hair fall": "Dermatology",
     "mudi pokal": "Dermatology",
+    "mudi kozhichil": "Dermatology",
 
     # ── ENT ───────────────────────────────────────────────
     "chevi vedana": "ENT",
@@ -90,6 +92,7 @@ SYMPTOM_MAP = {
     "sinusitis": "ENT",
     "sneezing": "ENT",
     "tonsils": "ENT",
+    "thummal": "ENT",
 
     # ── Gastroenterology ──────────────────────────────────
     "vayar valivu": "Gastroenterology",
@@ -140,7 +143,7 @@ SYMPTOM_MAP = {
     "shortness of breath": "Pulmanology",
     "tuberculosis": "Pulmanology",
     "tb": "Pulmanology",
-    "ches ttightness": "Pulmanology",
+    "chest tightness": "Pulmanology",
 
     # ── Nephrology ────────────────────────────────────────
     "kidney problem": "Nephrology",
