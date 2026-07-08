@@ -8,7 +8,10 @@ url = "https://api.sarvam.ai/v1/speech-to-text"
 def transcribe_audio(audio_path):
     if not api_key:
         
-        raise ValueError("API key not found. Please set the 'sarvam_api_key' in your environment variables.")
+        return {
+    "success": False,
+    "error": "Sarvam API key not found."
+}
     try:
         
         with open(audio_path,"rb") as audio_file:

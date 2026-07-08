@@ -20,10 +20,10 @@ def speak(text:str):
                 "success": False,
                 "message": f"API request failed with status code {response.status_code}: {response.text}"
             }
-        output_path="response.mp3"
+        output_path="audio/output/response.mp3"
         with open(output_path,"wb")as f:
             f.write(response.content)
-        return { "success": True, "output_path": output_path }
+        return { "success": True, "audio_path": output_path }
     except requests.exceptions.Timeout:
         return {
             "success": False,
