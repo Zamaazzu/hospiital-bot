@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Mic } from "lucide-react";
 import { useWaveform } from "../../hooks/useWaveform";
 import { useSpeechToText } from "../../hooks/useSpeechToText";
@@ -110,27 +110,51 @@ const styles = {
  * can drive voice navigation (e.g. opening a department when its name is
  * spoken) without VoiceBot needing to know about departments at all.
  */
+// WITH THIS:
 export default function VoiceBot({ isListening, onToggle, onTranscript }) {
+  // True only while the greeting is being spoken — the mic must stay
+  // deaf during this, so it can't pick up the bot's own voice or the
+  // user talking over it.
+  const [isGreeting, setIsGreeting] = useState(false);
+
   const bars = useWaveform(isListening);
   const { transcript, interimTranscript, supported: speechSupported, error: speechError } =
-    useSpeechToText(isListening);
+    useSpeechToText(isListening && !isGreeting);
 
   useEffect(() => {
     if (onTranscript) onTranscript(transcript);
   }, [transcript, onTranscript]);
 
   useEffect(() => {
-    if (typeof window === "undefined" || !window.speechSynthesis) return;
-    window.speechSynthesis.cancel();
-    if (!isListening) return;
+    const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+
+    if (!synth) {
+      setIsGreeting(false);
+      return;
+    }
+
+    synth.cancel();
+
+    if (!isListening) {
+      setIsGreeting(false);
+      return;
+    }
+
+    setIsGreeting(true);
     try {
       const utter = new SpeechSynthesisUtterance(GREETING_TEXT);
       utter.rate = 1;
       utter.pitch = 1.02;
-      window.speechSynthesis.speak(utter);
+      utter.onend = () => setIsGreeting(false);
+      utter.onerror = () => setIsGreeting(false);
+      synth.speak(utter);
     } catch (e) {
-      // speech synthesis unavailable — bubble text still shows
+      setIsGreeting(false);
     }
+
+    return () => {
+      synth.cancel();
+    };
   }, [isListening]);
 
   return (
@@ -158,12 +182,18 @@ export default function VoiceBot({ isListening, onToggle, onTranscript }) {
         </button>
       </div>
 
-      <div style={styles.micLabel}>{isListening ? "Listening…" : "Press & speak"}</div>
+      <div style={styles.micLabel}>
+        {isGreeting ? "Speaking…" : isListening ? "Listening…" : "Press & speak"}
+      </div>
       <div style={styles.micSub}>
-        {isListening ? "Tap the mic to stop" : "Tap the microphone and speak"}
+        {isGreeting
+          ? "One moment, please…"
+          : isListening
+          ? "Tap the mic to stop"
+          : "Tap the microphone and speak"}
       </div>
 
-      {isListening && (
+      {isListening && !isGreeting && (
         <div style={styles.transcriptBox} className="hvb-fade-in">
           {!speechSupported ? (
             <span style={styles.transcriptPlaceholder}>

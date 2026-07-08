@@ -4,6 +4,7 @@ export const DEPARTMENTS = [
   {
     id: "cardiology",
     name: "Cardiology",
+    aliases: ["cardiology", "heart", "cardiac"],
     Icon: HeartPulse,
     accent: "#8A5AE5",
     tint: "#EFE7FE",
@@ -15,6 +16,7 @@ export const DEPARTMENTS = [
   {
     id: "orthopaedics",
     name: "Orthopaedics",
+    aliases: ["orthopaedics", "orthopedics", "ortho", "bone", "bones", "joint"],
     Icon: Bone,
     accent: "#6A3FD6",
     tint: "#EAE1FC",
@@ -23,6 +25,7 @@ export const DEPARTMENTS = [
   {
     id: "ent",
     name: "ENT",
+    aliases: ["ent", "ear nose throat", "ear", "throat", "nose"],
     Icon: Ear,
     accent: "#B86FEA",
     tint: "#F5E9FE",
@@ -31,6 +34,7 @@ export const DEPARTMENTS = [
   {
     id: "ophthalmology",
     name: "Ophthalmology",
+    aliases: ["ophthalmology", "opthalmology", "ophthalmologist", "eye", "eyes", "vision"],
     Icon: Eye,
     accent: "#7C3AED",
     tint: "#F0E5FD",
@@ -39,6 +43,7 @@ export const DEPARTMENTS = [
   {
     id: "neurology",
     name: "Neurology",
+    aliases: ["neurology", "neuro", "brain", "nerve", "nerves"],
     Icon: Brain,
     accent: "#9333EA",
     tint: "#F1E4FD",
@@ -47,6 +52,7 @@ export const DEPARTMENTS = [
   {
     id: "dermatology",
     name: "Dermatology",
+    aliases: ["dermatology", "skin"],
     Icon: Sparkles,
     accent: "#C084FC",
     tint: "#F7ECFE",
@@ -55,6 +61,7 @@ export const DEPARTMENTS = [
   {
     id: "pediatrics",
     name: "Pediatrics",
+    aliases: ["pediatrics", "paediatrics", "child", "children", "kids"],
     Icon: Baby,
     accent: "#A855F7",
     tint: "#F2E6FE",
@@ -63,6 +70,7 @@ export const DEPARTMENTS = [
   {
     id: "dentistry",
     name: "Dentistry",
+    aliases: ["dentistry", "dental", "teeth", "tooth"],
     Icon: Smile,
     accent: "#5B2FC2",
     tint: "#E7DEFC",

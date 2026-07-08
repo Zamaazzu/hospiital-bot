@@ -4,6 +4,7 @@ import Hero from "./Hero/Hero";
 import Doctors from "./Doctors/Doctors";
 import Footer from "./Footer/Footer";
 import { DEPARTMENTS, GENERAL_OP } from "../constants/departments";
+import { matchDepartment } from "../utils/matchDepartment";
 import "../styles/voicebot.css";
 
 const styles = {
@@ -70,7 +71,7 @@ export default function HospitalVoiceBotApp() {
       return;
     }
 
-    const match = DEPARTMENTS.find((d) => lower.includes(d.name.toLowerCase()));
+    const match = matchDepartment(lower, DEPARTMENTS);
     if (match) {
       setSelectedDept(match);
       setShowDoctors(true);
