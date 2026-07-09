@@ -69,7 +69,8 @@ KEYWORD_RULES = {
         "status", "turn", "eppo vilikum",
         "etra per", "waiting", "confirmed",
         "token number", "ente turn", "evide ethi",
-        "token evide", "token call aayo",
+        "token evide", "token call aayo","ethra per munnil","how many people ahead of me"
+        "ippo vilikkuvo"
     ],
     "doctor_availability": [
         "doctor undo", "doctor und",
@@ -127,35 +128,34 @@ def load_model():
     print("Model loaded successfully")
     return True
 
-# ── Symptom Detection ─────────────────────────────────────────
-def is_symptom_query(text: str) -> bool:
-    text_lower = text.lower()
-    sorted_symptoms = sorted(SYMPTOM_MAP.keys(), key=len, reverse=True)
-    for symptom in sorted_symptoms:
-        if symptom in text_lower:
-            return True
-    return False
-
-# ── Department Extraction ─────────────────────────────────────
 def extract_department(text: str) -> str | None:
     text_lower = text.lower()
-
+    if len(text.strip()) <= 3:
+        return None
+    # 1. Symptom → Department
     if is_symptom_query(text):
-        return symptom_triage(text)
+        dept = symptom_triage(text)
+        if dept:
+            return dept
 
+    # 2. Gazetteer aliases
     for alias, official in alias_map.items():
         if alias in text_lower:
             return official
 
-    if len(text.split()) < 2:
-        return None
+    # 3. Exact department name match
+    for dept in DEPARTMENTS:
+        if dept.lower() in text_lower:
+            return dept
 
+    # 4. Fuzzy match only if nothing matched
     match, score = process.extractOne(
         text,
         DEPARTMENTS,
-        scorer=fuzz.token_sort_ratio   # changed scorer — more reliable than partial_ratio
+        scorer=fuzz.partial_ratio
     )
-    if score >= 85:
+
+    if score >= 80:
         return match
 
     return None
@@ -203,6 +203,13 @@ def extract_date(text: str) -> str | None:
         "ബുധൻ"     : "Wednesday",
         "വ്യാഴം"   : "Thursday",
         "വെള്ളി"   : "Friday",
+        "Thinkal"   : "Monday",
+        "chovva"  : "Tuesday",
+        "budhan": "Wednesday",
+        "vyazham" : "Thursday",
+        "velli"   : "Friday",
+        "shani" : "Saturday",
+        "njayar"   : "Sunday"
     }
 
     for word, date in date_words.items():
@@ -234,22 +241,59 @@ def extract_time(text: str) -> str | None:
 # ── Keyword Backup Intent ─────────────────────────────────────
 def keyword_backup(text: str) -> str | None:
     text_lower = text.lower()
+    queue_phrases = [
+    "ahead of me",
+    "before me",
+    "queue position",
+    "my turn",
+    "waiting before me",
+    "people are ahead",
+]
 
+    for phrase in queue_phrases:
+        if phrase in text_lower:
+            return "token_status"
     # Priority phrases checked first — fixes ambiguous overlaps
     priority_phrases = {
-        "booking confirmed": "token_status",
-        "is my booking": "token_status",
-        "booking cancel": "cancel_token",
-        "cancel cheyyu": "cancel_token",
-        "cancel cheyyanam": "cancel_token",
-        "OP available": "op_enquiry",
-        "is OP": "op_enquiry",
-        "token vangan": "token_booking",      
-        "vangan varunnu": "token_booking",
-        "kanaanam": "token_booking",          
-        "doctor kanaanam": "token_booking",   
-        "pettannu": "token_booking",  
-    }
+
+    # ---------- Token Status ----------
+    "booking confirmed": "token_status",
+    "is my booking": "token_status",
+    "token status": "token_status",
+    "token number": "token_status",
+    "check my token": "token_status",
+
+    # ---------- Cancel ----------
+    "cancel cheyyanam": "cancel_token",
+    "cancel cheyyu": "cancel_token",
+    "cancel my appointment": "cancel_token",
+    "booking cancel": "cancel_token",
+    "njan varaan patilla": "cancel_token",
+
+    # ---------- OP ----------
+    "op timing": "op_enquiry",
+    "op schedule": "op_enquiry",
+    "op open": "op_enquiry",
+    "is op": "op_enquiry",
+    "op available": "op_enquiry",
+
+    # ---------- Booking ----------
+    "book token": "token_booking",
+    "book appointment": "token_booking",
+    "appointment venam": "token_booking",
+    "token venam": "token_booking",
+    "doctor kanam": "token_booking",
+
+    # ---------- Doctor Availability ----------
+    "doctor available": "doctor_availability",
+    "doctor today": "doctor_availability",
+    "doctor tomorrow": "doctor_availability",
+    "doctors today": "doctor_availability",
+    "doctors tomorrow": "doctor_availability",
+    "show me doctors": "doctor_availability",
+    "list doctors": "doctor_availability",
+    "any doctors": "doctor_availability",
+}
     for phrase, intent in priority_phrases.items():
         if phrase in text_lower:
             return intent
@@ -315,28 +359,53 @@ def extract_intent_slots(text: str) -> dict:
     slots = {k: v for k, v in slots.items() if v is not None}
 
     # ── Step 3: Confidence-based intent resolution ─────────────────
-    if confidence >= 0.85:
+    # ── Step 3: Intent Resolution ─────────────────────────────
+
+    text_lower = text.lower()
+
+    # High confidence → Always trust MuRIL
+    if confidence >= 0.75:
         final_intent = predicted_intent
 
-    elif confidence >= 0.45:
-        backup       = keyword_backup(text)
-        final_intent = backup if backup else predicted_intent
+    # Medium confidence
+    elif confidence >= 0.50:
 
-    else:
-        # Low confidence - but if we found department via symptom, default to op_enquiry
-        if slots.get("department"):
+        # OP queries should stay OP
+        if "op" in text_lower:
             final_intent = "op_enquiry"
-            confidence = 0.65  # mark as resolved guess
+
+        # Department + doctor → doctor availability
+        elif slots.get("department") and "doctor" in text_lower:
+            final_intent = "doctor_availability"
+
+        else:
+            backup = keyword_backup(text)
+            final_intent = backup if backup else predicted_intent
+
+    # Low confidence
+    else:
+
+        backup = keyword_backup(text)
+
+        if backup:
+            final_intent = backup
+
+        elif slots.get("has_symptom"):
+            final_intent = "token_booking"
+            confidence = 0.65
+
+        elif slots.get("department"):
+            final_intent = predicted_intent
+
         else:
             return {
-                "intent"    : "unclear",
+                "intent": "unclear",
                 "confidence": round(confidence, 4),
-                "slots"     : {},
-                "reply"     : "Sorry, could you please rephrase that?"
+                "slots": {},
+                "reply": "Sorry, could you please rephrase that?"
             }
-
-    # ── Step 4: Return result ─────────────────────────────────────
-    return {
+        
+    return{
         "intent"    : final_intent,
         "confidence": round(confidence, 4),
         "slots"     : slots,

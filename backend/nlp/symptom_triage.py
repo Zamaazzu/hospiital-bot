@@ -54,12 +54,16 @@ SYMPTOM_MAP = {
     "fracture": "Orthopaedics",
     "broken bone": "Orthopaedics",
     "knee pain": "Orthopaedics",
+    "knee hurts": "Orthopaedics",
     "moottu valivu": "Orthopaedics",
     "iduppu valivu": "Orthopaedics",
     "shoulder pain": "Orthopaedics",
     "elbow": "Orthopaedics",
     "arthritis": "Orthopaedics",
     "tol vedana":"Orthopaedics",
+    "deham vedana":"Orthopaedics",
+    "vedana":"Orthopaedics",
+
 
     # ── Dermatology ───────────────────────────────────────
     "mukha kuru": "Dermatology",
@@ -280,11 +284,10 @@ def symptom_triage(text: str) -> str:
             return SYMPTOM_MAP[symptom]
 
     return "Emergency Medicine"  # default fallback
-
+sorted_symptoms = sorted(SYMPTOM_MAP.keys(), key=len, reverse=True)
 def is_symptom_query(text: str) -> bool:
     """Check if text contains any symptom phrase"""
     text_lower = text.lower()
-    sorted_symptoms = sorted(SYMPTOM_MAP.keys(), key=len, reverse=True)
     for symptom in sorted_symptoms:
         if symptom in text_lower:
             return True
