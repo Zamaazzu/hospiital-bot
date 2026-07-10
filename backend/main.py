@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from fastapi import FastAPI
+from fastapi import FastAPI,UploadFile,File
 from pydantic import BaseModel
 from backend.nlp.intent_extractor import extract_intent_slots, load_model
 from backend.nlp.intent_adapter import adapt_intent_result
@@ -39,6 +39,60 @@ def book(request: BookingRequest):
         gender=request.gender
     )
     return result
+def route_chat_intent(user_text: str) -> str:
+    """Shared logic for /chat and /voice. Returns the reply as plain text."""
+    extracted_result = extract_intent_slots(user_text)
+    intent_result = adapt_intent_result(user_text, extracted_result)
+    intent = intent_result.get("intent")
+
+    if intent == "doctor_availability":
+        database_result = lookup_available_doctors(
+            department=intent_result.get("department"),
+            doctor=intent_result.get("doctor"),
+            date=intent_result.get("date")
+        )
+        if not database_result:
+            return "No doctors found for your request."
+        prompt = build_prompt(intent_result, database_result)
+        response = ask_gemini(prompt)
+        return response or "Sorry, the AI service is currently unavailable. Please try again later."
+
+    elif intent == "token_status":
+        token_number = intent_result.get("ticket_number")
+        if not token_number:
+            return "Please provide your token number to check its status."
+        database_result = get_token_status(token_number)
+        if not database_result or database_result.get("success") is False:
+            return "Sorry, I couldn't find that token. Please check the number and try again."
+        prompt = build_prompt(intent_result, database_result)
+        response = ask_gemini(prompt)
+        return response or "Sorry, the AI service is currently unavailable. Please try again later."
+
+    elif intent == "op_enquiry":
+        database_result = lookup_hospital_info()
+        if not database_result:
+            return "Sorry, hospital information is currently unavailable."
+        prompt = build_prompt(intent_result, database_result)
+        response = ask_gemini(prompt)
+        return response or "Sorry, the AI service is currently unavailable. Please try again later."
+
+    elif intent == "token_booking":
+        return (
+            "I can help you book an appointment. "
+            "Please select a department from the list to see available doctors."
+        )
+
+    elif intent == "cancel_token":
+        return "Token cancellation not implemented yet"
+
+    elif intent == "unclear":
+        return "Sorry, could you please rephrase that?"
+
+    else:
+        return "Sorry, I couldn't understand your request."
+    
+
+
 @app.get("/")
 def home():
     return {"message": "Hospital OP Bot API Running"}
@@ -101,79 +155,32 @@ def token_status(token_number: str):
         return {"response": "Sorry, I couldn't find that token."}
     return result
 
+
+
 @app.post("/chat")
 def chat(request: ChatRequest):
     try:
-        user_text = request.message
-        extracted_result = extract_intent_slots(user_text)
-        intent_result = adapt_intent_result(user_text, extracted_result)
-        intent = intent_result.get("intent")
-
-        if intent == "doctor_availability":
-            database_result = lookup_available_doctors(
-                department=intent_result.get("department"),
-                doctor=intent_result.get("doctor"),
-                date=intent_result.get("date")
-            )
-            if not database_result:
-                return {"response": "No doctors found for your request."}
-
-            prompt = build_prompt(intent_result, database_result)
-            response = ask_gemini(prompt)
-
-            if response is None:
-                  return {
-                        "response": "Sorry, the AI service is currently unavailable. Please try again later."
-                  }
-
-            return {"response": response}
-
-        elif intent == "token_status":
-            token_number = intent_result.get("ticket_number")
-            if not token_number:
-                return {"response": "Please provide your token number to check its status."}
-
-            database_result = get_token_status(token_number)
-            if not database_result or database_result.get("success") is False:
-                return {"response": "Sorry, I couldn't find that token. Please check the number and try again."}
-
-            prompt = build_prompt(intent_result, database_result)
-            response = ask_gemini(prompt)
-
-            if response is None:
-                  return {
-                        "response": "Sorry, the AI service is currently unavailable. Please try again later."
-                  }
-
-            return {"response": response}
-
-        elif intent == "op_enquiry":
-            database_result = lookup_hospital_info()
-            if not database_result:
-                return {"response": "Sorry, hospital information is currently unavailable."}
-
-            prompt = build_prompt(intent_result, database_result)
-            response = ask_gemini(prompt)
-
-            if response is None:
-                  return {
-                        "response": "Sorry, the AI service is currently unavailable. Please try again later."
-                  }
-
-            return {"response": response}
-
-        elif intent == "token_booking":
-            return {"response": "Booking integration is under development."}
-
-        elif intent == "cancel_token":
-            return {"response": "Token cancellation not implemented yet"}
-
-        elif intent == "unclear":
-            return {"response": "Sorry, could you please rephrase that?"}
-
-        else:
-            return {"response": "Sorry, I couldn't understand your request."}
-
+        reply = route_chat_intent(request.message)
+        return {"response": reply}
     except Exception as e:
         print(f"Chat endpoint error: {e}")
         return {"response": "Sorry, something went wrong. Please try again."}
+
+
+@app.post("/voice")
+async def voice(audio: UploadFile = File(...)):
+    try:
+        audio_bytes = await audio.read()
+        user_text = transcribe_audio(audio_bytes)
+
+        if not user_text:
+            return {"reply_text": "Sorry, I couldn't understand the audio. Please try again.", "audio_url": None}
+
+        reply_text = route_chat_intent(user_text)
+        audio_url = speak_text(reply_text)
+
+        return {"reply_text": reply_text, "audio_url": audio_url}
+
+    except Exception as e:
+        print(f"Voice endpoint error: {e}")
+        return {"reply_text": "Sorry, something went wrong. Please try again.", "audio_url": None}
