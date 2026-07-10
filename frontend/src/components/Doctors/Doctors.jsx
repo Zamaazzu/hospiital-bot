@@ -1,12 +1,47 @@
 import React, { useEffect, useState } from "react";
-import { X, ArrowLeft, ChevronRight, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
 import {
-  DEPARTMENTS,
-  DEPTS_PER_PAGE,
-  TOTAL_PAGES,
-  LOW_TOKEN_THRESHOLD,
-  NO_SELECTION_FLOW_IDS,
-} from "../../constants/departments";
+  X,
+  ArrowLeft,
+  ChevronRight,
+  Clock,
+  CheckCircle2,
+  AlertTriangle,
+  Loader2,
+  HeartPulse,
+  Bone,
+  Ear,
+  Eye,
+  Brain,
+  Sparkles,
+  Baby,
+  Smile,
+  Stethoscope,
+} from "lucide-react";
+import { DEPTS_PER_PAGE, LOW_TOKEN_THRESHOLD, NO_SELECTION_FLOW_IDS } from "../../constants/departments";
+import { fetchDepartments, fetchDoctors, bookToken } from "../../services/api";
+
+// The database only returns plain department names/codes — no icons or
+// colors. Keep that styling here and merge it on by name once the real
+// list is fetched. Keys are normalized (lowercase, trimmed) so small
+// casing differences in the seeded data don't break the match.
+const DEPT_STYLE_BY_NAME = {
+  cardiology: { Icon: HeartPulse, accent: "#8A5AE5", tint: "#EFE7FE" },
+  orthopaedics: { Icon: Bone, accent: "#6A3FD6", tint: "#EAE1FC" },
+  orthopedics: { Icon: Bone, accent: "#6A3FD6", tint: "#EAE1FC" },
+  ent: { Icon: Ear, accent: "#B86FEA", tint: "#F5E9FE" },
+  ophthalmology: { Icon: Eye, accent: "#7C3AED", tint: "#F0E5FD" },
+  neurology: { Icon: Brain, accent: "#9333EA", tint: "#F1E4FD" },
+  dermatology: { Icon: Sparkles, accent: "#C084FC", tint: "#F7ECFE" },
+  pediatrics: { Icon: Baby, accent: "#A855F7", tint: "#F2E6FE" },
+  paediatrics: { Icon: Baby, accent: "#A855F7", tint: "#F2E6FE" },
+  dentistry: { Icon: Smile, accent: "#5B2FC2", tint: "#E7DEFC" },
+};
+const DEFAULT_DEPT_STYLE = { Icon: Stethoscope, accent: "#8A5AE5", tint: "#EFE7FE" };
+
+function styleForDeptName(name) {
+  const key = (name || "").trim().toLowerCase();
+  return DEPT_STYLE_BY_NAME[key] || DEFAULT_DEPT_STYLE;
+}
 
 const styles = {
   drawer: {
@@ -227,6 +262,29 @@ const styles = {
     background: "#fff",
     cursor: "pointer",
   },
+  stateWrap: {
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: "10px",
+    padding: "40px 20px",
+    color: "#9C8FBE",
+    fontSize: "13px",
+    textAlign: "center",
+  },
+  errorText: { color: "#C0392B" },
+  retryBtn: {
+    marginTop: "6px",
+    border: "1px solid #DCCEFF",
+    background: "#fff",
+    color: "#6D42D8",
+    fontWeight: 700,
+    fontSize: "12.5px",
+    padding: "8px 16px",
+    borderRadius: "999px",
+    cursor: "pointer",
+  },
 };
 
 function GeneralOpForm({ selectedDept, opForm, setOpForm, opFormSubmitted, setOpFormSubmitted }) {
@@ -314,15 +372,7 @@ function GeneralOpForm({ selectedDept, opForm, setOpForm, opFormSubmitted, setOp
   );
 }
 
-function getNextTokenNumber(doctor) {
-  // e.g. capacity 30, tokens (remaining) 24 → 6 already issued → next is 7
-  const alreadyIssued = doctor.capacity - doctor.tokens;
-  const nextNumber = alreadyIssued + 1;
-  doctor.tokens = Math.max(0, doctor.tokens - 1); // one less remaining for the next person
-  return nextNumber;
-}
-
-function DoctorBookingForm({ dept, doctor, form, setForm, onSubmit }) {
+function DoctorBookingForm({ dept, doctor, form, setForm, onSubmit, submitting, submitError }) {
   return (
     <div style={styles.drawerGrid}>
       <form
@@ -333,7 +383,7 @@ function DoctorBookingForm({ dept, doctor, form, setForm, onSubmit }) {
         <span className="hvb-doctor-edge" style={{ background: dept.accent }} />
 
         <p style={styles.bookingIntro}>
-          Booking with <strong>{doctor.name}</strong> · {doctor.hours}
+          Booking with <strong>{doctor.doctor_name}</strong> · {doctor.report_time}
         </p>
 
         <label style={styles.formLabel} htmlFor="booking-name">
@@ -383,8 +433,26 @@ function DoctorBookingForm({ dept, doctor, form, setForm, onSubmit }) {
           <option value="male">Male</option>
           <option value="other">Other</option>
         </select>
-        <button type="submit" style={styles.formSubmitBtn} className="hvb-form-submit">
-          Get token
+
+        <label style={styles.formLabel} htmlFor="booking-phone">
+          Phone
+        </label>
+        <input
+          id="booking-phone"
+          type="tel"
+          required
+          pattern="[0-9]{10}"
+          placeholder="10-digit mobile number"
+          value={form.phone}
+          onChange={(e) => setForm({ ...form, phone: e.target.value })}
+          style={styles.formInput}
+          className="hvb-form-input"
+        />
+
+        {submitError && <p style={{ ...styles.generalOpText, color: "#C0392B" }}>{submitError}</p>}
+
+        <button type="submit" style={styles.formSubmitBtn} className="hvb-form-submit" disabled={submitting}>
+          {submitting ? "Booking…" : "Get token"}
         </button>
       </form>
     </div>
@@ -424,6 +492,18 @@ function TokenConfirmation({ token, accent, onDone }) {
           <span style={styles.tokenDetailLabel}>Doctor</span>
           <span style={styles.tokenDetailValue}>{token.doctor}</span>
         </div>
+        {token.hospital && (
+          <div style={styles.tokenDetailRow}>
+            <span style={styles.tokenDetailLabel}>Hospital</span>
+            <span style={styles.tokenDetailValue}>{token.hospital}</span>
+          </div>
+        )}
+        {token.reportTime && (
+          <div style={styles.tokenDetailRow}>
+            <span style={styles.tokenDetailLabel}>Report time</span>
+            <span style={styles.tokenDetailValue}>{token.reportTime}</span>
+          </div>
+        )}
 
         <button type="button" onClick={onDone} style={styles.doneBtn}>
           Done
@@ -433,16 +513,16 @@ function TokenConfirmation({ token, accent, onDone }) {
   );
 }
 
-function DoctorList({ selectedDept, onSelectDoctor }) {
+function DoctorList({ selectedDept, doctors, onSelectDoctor }) {
   return (
     <div style={styles.drawerGrid}>
-      {selectedDept.doctors.map((doc, i) => {
-        const pct = Math.round((doc.tokens / doc.capacity) * 100);
-        const isSoldOut = doc.tokens <= 0;
-        const hasTokens = !isSoldOut && doc.tokens >= LOW_TOKEN_THRESHOLD;
+      {doctors.map((doc, i) => {
+        const pct = Math.round((doc.tokens_left / doc.total_tokens) * 100);
+        const isSoldOut = doc.tokens_left <= 0;
+        const hasTokens = !isSoldOut && doc.tokens_left >= LOW_TOKEN_THRESHOLD;
         return (
           <div
-            key={doc.name}
+            key={doc.doctor_id}
             className={`hvb-doctor-card ${isSoldOut ? "hvb-doctor-card-disabled" : ""}`}
             style={{
               ...styles.doctorCard,
@@ -475,11 +555,11 @@ function DoctorList({ selectedDept, onSelectDoctor }) {
               </div>
               <div style={{ flex: 1 }}>
                 <div style={{ ...styles.doctorName, ...(isSoldOut ? { color: "#9A9AA3" } : null) }}>
-                  {doc.name}
+                  {doc.doctor_name}
                 </div>
                 <div style={styles.doctorHours}>
                   <Clock size={13} style={{ marginRight: 6, flexShrink: 0 }} />
-                  {doc.hours}
+                  {doc.report_time}
                 </div>
               </div>
             </div>
@@ -493,7 +573,7 @@ function DoctorList({ selectedDept, onSelectDoctor }) {
               </div>
               <div style={styles.tokenStatusRow}>
                 <span style={{ ...styles.tokenText, color: isSoldOut ? "#9A9AA3" : selectedDept.accent }}>
-                  {isSoldOut ? "No tokens left" : `${doc.tokens} tokens left`}
+                  {isSoldOut ? "No tokens left" : `${doc.tokens_left} tokens left`}
                 </span>
                 <span
                   style={{
@@ -530,24 +610,79 @@ export default function Doctors({
   opFormSubmitted,
   setOpFormSubmitted,
 }) {
+  const [departments, setDepartments] = useState([]);
+  const [loadingDepartments, setLoadingDepartments] = useState(true);
+  const [deptLoadError, setDeptLoadError] = useState(null);
+
+  const [doctors, setDoctors] = useState([]);
+  const [loadingDoctors, setLoadingDoctors] = useState(false);
+  const [doctorsLoadError, setDoctorsLoadError] = useState(null);
+
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [bookingForm, setBookingForm] = useState({ name: "", age: "", gender: "" });
+  const [bookingForm, setBookingForm] = useState({ name: "", age: "", gender: "", phone: "" });
   const [bookedToken, setBookedToken] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState(null);
+
+  const loadDepartments = () => {
+    setLoadingDepartments(true);
+    setDeptLoadError(null);
+    fetchDepartments()
+      .then((data) => {
+        const merged = data.map((dept) => ({
+          id: dept.department_id,
+          name: dept.department,
+          deptCode: dept.dept_code,
+          ...styleForDeptName(dept.department),
+        }));
+        setDepartments(merged);
+      })
+      .catch((err) => setDeptLoadError(err.message))
+      .finally(() => setLoadingDepartments(false));
+  };
+
+  // Fetch the real department list once, when the drawer first opens.
+  useEffect(() => {
+    if (show && departments.length === 0 && !deptLoadError) {
+      loadDepartments();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [show]);
+
+  const totalPages = Math.ceil(departments.length / DEPTS_PER_PAGE) || 1;
+
+  // Fetch the real doctor list for whichever department is selected
+  // (skip for the synthetic "general-op" entry, which has no real
+  // department_id and uses its own form instead).
+  useEffect(() => {
+    if (!selectedDept || NO_SELECTION_FLOW_IDS.includes(selectedDept.id)) {
+      setDoctors([]);
+      return;
+    }
+    setLoadingDoctors(true);
+    setDoctorsLoadError(null);
+    fetchDoctors(selectedDept.id)
+      .then(setDoctors)
+      .catch((err) => setDoctorsLoadError(err.message))
+      .finally(() => setLoadingDoctors(false));
+  }, [selectedDept]);
 
   // Reset the doctor-booking flow whenever the department changes (including
   // going back to the department grid) or the drawer closes, so a stale
   // token/form doesn't linger the next time it's opened.
   useEffect(() => {
     setSelectedDoctor(null);
-    setBookingForm({ name: "", age: "", gender: "" });
+    setBookingForm({ name: "", age: "", gender: "", phone: "" });
     setBookedToken(null);
+    setSubmitError(null);
   }, [selectedDept]);
 
   useEffect(() => {
     if (!show) {
       setSelectedDoctor(null);
-      setBookingForm({ name: "", age: "", gender: "" });
+      setBookingForm({ name: "", age: "", gender: "", phone: "" });
       setBookedToken(null);
+      setSubmitError(null);
     }
   }, [show]);
 
@@ -558,7 +693,7 @@ export default function Doctors({
     return () => window.removeEventListener("keydown", onKey);
   }, [show, onClose]);
 
-  const pageDepartments = DEPARTMENTS.slice(
+  const pageDepartments = departments.slice(
     deptPage * DEPTS_PER_PAGE,
     deptPage * DEPTS_PER_PAGE + DEPTS_PER_PAGE
   );
@@ -566,29 +701,53 @@ export default function Doctors({
   const handleBack = () => {
     if (bookedToken || selectedDoctor) {
       setSelectedDoctor(null);
-      setBookingForm({ name: "", age: "", gender: "" });
+      setBookingForm({ name: "", age: "", gender: "", phone: "" });
       setBookedToken(null);
+      setSubmitError(null);
       return;
     }
     setSelectedDept(null);
   };
 
-  const handleBookingSubmit = (e) => {
+  const handleBookingSubmit = async (e) => {
     e.preventDefault();
-    setBookedToken({
-     tokenNumber: getNextTokenNumber(selectedDoctor),
-      name: bookingForm.name,
-      age: bookingForm.age,
-      gender: bookingForm.gender,
-      department: selectedDept.name,
-      doctor: selectedDoctor.name,
-    });
+    setSubmitting(true);
+    setSubmitError(null);
+    try {
+      const result = await bookToken({
+        scheduleId: selectedDoctor.schedule_id,
+        name: bookingForm.name,
+        age: bookingForm.age,
+        gender: bookingForm.gender,
+        phone: bookingForm.phone,
+      });
+
+      if (result.success === false) {
+        setSubmitError(result.message || "Booking failed. Please try again.");
+        return;
+      }
+
+      setBookedToken({
+        tokenNumber: result.token_number,
+        name: bookingForm.name,
+        age: bookingForm.age,
+        gender: bookingForm.gender,
+        department: result.department || selectedDept.name,
+        doctor: result.doctor_name || selectedDoctor.doctor_name,
+        hospital: result.hospital,
+        reportTime: result.report_time,
+      });
+    } catch (err) {
+      setSubmitError(err.message || "Booking failed. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const drawerTitle = bookedToken
     ? "Your token"
     : selectedDoctor
-    ? selectedDoctor.name
+    ? selectedDoctor.doctor_name
     : selectedDept
     ? selectedDept.name
     : "Choose a department";
@@ -623,7 +782,23 @@ export default function Doctors({
         </div>
 
         <div style={styles.drawerContent}>
-          {!selectedDept && (
+          {!selectedDept && loadingDepartments && (
+            <div style={styles.stateWrap}>
+              <Loader2 size={22} style={{ animation: "hvb-spin 1s linear infinite" }} />
+              Loading departments…
+            </div>
+          )}
+
+          {!selectedDept && !loadingDepartments && deptLoadError && (
+            <div style={styles.stateWrap}>
+              <span style={styles.errorText}>Couldn't load departments: {deptLoadError}</span>
+              <button style={styles.retryBtn} onClick={loadDepartments}>
+                Retry
+              </button>
+            </div>
+          )}
+
+          {!selectedDept && !loadingDepartments && !deptLoadError && (
             <>
               <div style={styles.deptGrid}>
                 {pageDepartments.map((dept, i) => (
@@ -642,17 +817,14 @@ export default function Doctors({
                       <dept.Icon size={22} />
                     </div>
                     <div style={styles.deptName}>{dept.name}</div>
-                    <div style={styles.deptCount}>
-                      {dept.doctors.length} doctor{dept.doctors.length > 1 ? "s" : ""}
-                    </div>
                   </button>
                 ))}
               </div>
 
-              {deptPage < TOTAL_PAGES - 1 && (
+              {deptPage < totalPages - 1 && (
                 <div style={styles.paginationRow}>
                   <button
-                    onClick={() => setDeptPage((p) => Math.min(p + 1, TOTAL_PAGES - 1))}
+                    onClick={() => setDeptPage((p) => Math.min(p + 1, totalPages - 1))}
                     className="hvb-next-page-btn"
                     style={styles.nextPageBtn}
                   >
@@ -674,9 +846,40 @@ export default function Doctors({
             />
           )}
 
+          {selectedDept && !NO_SELECTION_FLOW_IDS.includes(selectedDept.id) && !selectedDoctor && loadingDoctors && (
+            <div style={styles.stateWrap}>
+              <Loader2 size={22} style={{ animation: "hvb-spin 1s linear infinite" }} />
+              Loading doctors…
+            </div>
+          )}
+
           {selectedDept &&
             !NO_SELECTION_FLOW_IDS.includes(selectedDept.id) &&
-            !selectedDoctor && <DoctorList selectedDept={selectedDept} onSelectDoctor={setSelectedDoctor} />}
+            !selectedDoctor &&
+            !loadingDoctors &&
+            doctorsLoadError && (
+              <div style={styles.stateWrap}>
+                <span style={styles.errorText}>Couldn't load doctors: {doctorsLoadError}</span>
+              </div>
+            )}
+
+          {selectedDept &&
+            !NO_SELECTION_FLOW_IDS.includes(selectedDept.id) &&
+            !selectedDoctor &&
+            !loadingDoctors &&
+            !doctorsLoadError &&
+            doctors.length === 0 && (
+              <div style={styles.stateWrap}>No doctors are scheduled for this department today.</div>
+            )}
+
+          {selectedDept &&
+            !NO_SELECTION_FLOW_IDS.includes(selectedDept.id) &&
+            !selectedDoctor &&
+            !loadingDoctors &&
+            !doctorsLoadError &&
+            doctors.length > 0 && (
+              <DoctorList selectedDept={selectedDept} doctors={doctors} onSelectDoctor={setSelectedDoctor} />
+            )}
 
           {selectedDept && selectedDoctor && !bookedToken && (
             <DoctorBookingForm
@@ -685,6 +888,8 @@ export default function Doctors({
               form={bookingForm}
               setForm={setBookingForm}
               onSubmit={handleBookingSubmit}
+              submitting={submitting}
+              submitError={submitError}
             />
           )}
 
