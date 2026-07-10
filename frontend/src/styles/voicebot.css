@@ -324,3 +324,7 @@
 @media (max-width: 520px) {
   .hvb-hero-doctors-btn span { display: none; }
 }
+
+@keyframes hvb-spin {
+  to { transform: rotate(360deg); }
+}
