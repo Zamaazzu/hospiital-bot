@@ -27,6 +27,8 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan)
 
+os.makedirs("audio", exist_ok=True)
+os.makedirs("audio/temp", exist_ok=True)
 app.mount("/audio", StaticFiles(directory="audio"), name="audio")
 
 
