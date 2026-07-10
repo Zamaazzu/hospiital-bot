@@ -311,6 +311,10 @@ def extract_date(text: str) -> str | None:
         "ബുധൻ"     : "Wednesday",
         "വ്യാഴം"   : "Thursday",
         "വെള്ളി"   : "Friday",
+        "ശനി"      :"saturday",
+        "ഞായർ"   :"sunday",
+        "ഇന്ന്"      :"today",
+        "നാളെ"    :"tomorrow"
     }
 
     for word, date in date_words.items():
