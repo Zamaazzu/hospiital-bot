@@ -87,12 +87,12 @@ symptom_queries = [
     ("fever undu, doctor free aano?",     "doctor_availability"),
     ("vayar vedana undu, OP undo?",       "op_enquiry"),
     ("chevi vedana, OP timing enthu?",    "op_enquiry"),
-    ("fever undu, OP open aano?",         "op_enquiry"),
+    ("afasaiasfiadasd",         "none"),
 ]
 
 # ── Doctor Availability Edge Cases ────────────────────────
 edge_cases = [
-    ("Cardiology doctors tomorrow",              "doctor_availability"),
+    ("Gastroenterology doctors tomorrow",              "doctor_availability"),
     ("Doctors available in Cardiology tomorrow", "doctor_availability"),
     ("Show me Cardiology doctors",               "doctor_availability"),
     ("Is there a Cardiology doctor available",   "doctor_availability"),
