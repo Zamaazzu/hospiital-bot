@@ -94,7 +94,7 @@ symptom_queries = [
 edge_cases = [
     ("Gastroenterology doctors tomorrow",              "doctor_availability"),
     ("Doctors available in Cardiology tomorrow", "doctor_availability"),
-    ("Show me Cardiology doctors",               "doctor_availability"),
+    ("Show me Cardiology doctors today",               "doctor_availability"),
     ("Is there a Cardiology doctor available",   "doctor_availability"),
     ("List doctors in Neurology today",          "doctor_availability"),
     ("ENT doctors today",                        "doctor_availability"),
