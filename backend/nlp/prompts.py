@@ -139,7 +139,7 @@ def _build_booking_prompt(intent_result, database_result):
     """
 
     database_information=f"""
-    Available Doctors
+    Doctor lookup Result
     {doctor_details}
     """
 
@@ -220,8 +220,8 @@ Use only the token information provided.
 
 Do not invent token numbers, statuses or estimated waiting times.
 
-If token information is unavailable,
-politely inform the user."""
+If the backend reports that the token was not found,
+inform the user politely."""
 
 
 def _build_hospital_prompt(intent_result, database_result):
@@ -239,7 +239,8 @@ Generate a short, polite and professional response.
 Use only the hospital information provided.
 
 Do not invent hospital facilities, departments, contact information, or services.
-
+If the user asks about services that are not present in the provided hospital information,
+state that the information is unavailable rather than assuming.
 If the requested information is unavailable,
 politely inform the user.
 """
