@@ -9,107 +9,86 @@ def detect_speech(audio_file):
     else:
         return {"speech_detected": False, "speech_segment": []}'''
 import os
+
+import numpy as np
+import soundfile as sf
 import torch
 import torchaudio
 
-from silero_vad import (
-    load_silero_vad,
-    get_speech_timestamps
-)
+from silero_vad import load_silero_vad, get_speech_timestamps
 
-# Load the model once
+# Load Silero VAD model only once
 model = load_silero_vad()
 
-TARGET_SAMPLE_RATE = 16000
 
-
-def detect_speech(audio_file):
-
-    # Check if the audio file exists
-    if not os.path.exists(audio_file):
-        return {
-            "success": False,
-            "speech_detected": False,
-            "speech_audio_path": None,
-            "error": "Audio file not found."
-        }
+def detect_speech(audio_path):
 
     try:
+        # Check if file exists
+        if not os.path.exists(audio_path):
+            return {
+                "success": False,
+                "speech_detected": False,
+                "speech_audio_path": None,
+                "error": "Audio file not found."
+            }
 
-        # Load the audio file
-        waveform, sample_rate = torchaudio.load(audio_file)
+        # Load audio
+        audio, sample_rate = sf.read(audio_path)
 
-        # Convert stereo audio to mono
-        if waveform.shape[0] > 1:
-            waveform = waveform.mean(dim=0, keepdim=True)
+        # Convert stereo to mono
+        if len(audio.shape) > 1:
+            audio = np.mean(audio, axis=1)
 
-        # Convert sample rate to 16 kHz
-        if sample_rate != TARGET_SAMPLE_RATE:
+        # Convert to torch tensor
+        audio = torch.from_numpy(audio).float()
 
+        # Resample to 16 kHz if needed
+        if sample_rate != 16000:
             resampler = torchaudio.transforms.Resample(
                 orig_freq=sample_rate,
-                new_freq=TARGET_SAMPLE_RATE
+                new_freq=16000
             )
+            audio = resampler(audio)
+            sample_rate = 16000
 
-            waveform = resampler(waveform)
+        # Normalize audio
+        max_value = torch.max(torch.abs(audio))
 
-        # Remove the channel dimension
-        waveform = waveform.squeeze()
+        if max_value > 0:
+            audio = audio / max_value
 
         # Detect speech
-        speech_timestamps = get_speech_timestamps(
-            waveform,
-            model,
-            sampling_rate=TARGET_SAMPLE_RATE,
-            threshold=0.5,
-            min_silence_duration_ms=300,
-            speech_pad_ms=200
-        )
+        speech_timestamps = get_speech_timestamps(audio, model)
 
-        # No speech found
-        if not speech_timestamps:
+        if len(speech_timestamps) == 0:
             return {
                 "success": True,
                 "speech_detected": False,
                 "speech_audio_path": None
             }
 
-        # Extract speech segments
-        speech_chunks = []
+        # Extract speech segment
+        start = speech_timestamps[0]["start"]
+        end = speech_timestamps[-1]["end"]
 
-        for segment in speech_timestamps:
+        speech_audio = audio[start:end]
 
-            start = segment["start"]
-            end = segment["end"]
-
-            speech_chunks.append(
-                waveform[start:end]
-            )
-
-        # Merge all speech segments
-        speech_waveform = torch.cat(speech_chunks)
-
-        # Add channel dimension for saving
-        speech_waveform = speech_waveform.unsqueeze(0)
-
-        # Save speech audio
         output_path = "audio/temp/speech.wav"
 
-        torchaudio.save(
+        sf.write(
             output_path,
-            speech_waveform,
-            TARGET_SAMPLE_RATE
+            speech_audio.numpy(),
+            sample_rate
         )
 
         return {
             "success": True,
             "speech_detected": True,
-            "speech_audio_path": output_path,
-            "speech_segments": speech_timestamps
+            "speech_audio_path": output_path
         }
 
     except Exception as e:
-
         return {
             "success": False,
             "speech_detected": False,

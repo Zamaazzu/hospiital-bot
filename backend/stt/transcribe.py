@@ -3,7 +3,7 @@ from dotenv import load_dotenv
 import requests
 load_dotenv()
 api_key = os.getenv("sarvam_api_key")
-url = "https://api.sarvam.ai/v1/speech-to-text"
+url = "https://api.sarvam.ai/speech-to-text"
 
 def transcribe_audio(audio_path):
     if not api_key:
@@ -15,10 +15,18 @@ def transcribe_audio(audio_path):
     try:
         
         with open(audio_path,"rb") as audio_file:
-            headers= { "sarvam-api-key": api_key }
-            data = { "language": "ml-IN" }
+            headers = {
+                     "api-subscription-key": api_key
+                                    }
+            data = { "language": "ml-IN",  "model": "saaras:v3" }
             
-            files = { "file": audio_file }
+            files = {
+                        "file": (
+                            "clean.wav",
+                            audio_file,
+                            "audio/wav"
+                        )
+                    }
             response = requests.post(url=url, headers=headers, data=data, files=files,timeout=60)
             if response.status_code != 200:
                 return {
