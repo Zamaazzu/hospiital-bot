@@ -55,11 +55,14 @@ def process_chat(user_text: str) -> str:
     intent = intent_result.get("intent")
 
     if intent == "doctor_availability":
+        print(f"DEBUG — department: {intent_result.get('department')}, doctor: {intent_result.get('doctor')}, date: {intent_result.get('date')}")
+        
         database_result = lookup_available_doctors(
             department=intent_result.get("department"),
             doctor=intent_result.get("doctor"),
             date=intent_result.get("date")
         )
+        print(f"DEBUG — database_result: {database_result}")
         if not database_result:
             return "No doctors found for your request."
         prompt = build_prompt(intent_result, database_result)

@@ -6,10 +6,23 @@ from backend.db.models import (
     OPToken,
     Patient
 )
-def _generate_token_number(schedule):
+def _generate_token_number(db, schedule):
     dept_code = schedule.doctor.department.dept_code
     date_str = schedule.schedule_date.strftime("%Y%m%d")
-    sequence = schedule.tokens_issued + 1
+
+    # Count existing tokens for this department + date combo, across ALL schedules
+    existing_count = (
+        db.query(OPToken)
+        .join(OPSchedule, OPToken.schedule_id == OPSchedule.id)
+        .join(Doctor, OPSchedule.doctor_id == Doctor.id)
+        .filter(
+            Doctor.dept_id == schedule.doctor.dept_id,
+            OPSchedule.schedule_date == schedule.schedule_date
+        )
+        .count()
+    )
+
+    sequence = existing_count + 1
     return f"{dept_code}-{date_str}-{sequence:03d}"
 def book_token(schedule_id, name, phone=None, age=None, gender=None):
     db = SessionLocal()
@@ -29,7 +42,7 @@ def book_token(schedule_id, name, phone=None, age=None, gender=None):
         db.add(patient)
         db.flush()
 
-        token_number = _generate_token_number(schedule)
+        token_number = _generate_token_number(db,schedule)
         new_token = OPToken(
             schedule_id=schedule_id,
             patient_id=patient.id,
