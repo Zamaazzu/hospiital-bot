@@ -94,7 +94,7 @@ export const TOTAL_PAGES = Math.ceil(DEPARTMENTS.length / DEPTS_PER_PAGE);
 export const LOW_TOKEN_THRESHOLD = 10;
 
 export const GREETING_TEXT =
-  "Hi, welcome to Ananthapuri Hospital! Which doctor's appointment would you like to book, and for which department?";
+  "ഹായ്, അനന്തപുരി ഹോസ്പിറ്റലിലേക്ക് സ്വാഗതം! നിങ്ങൾക്ക് ഏത് ഡോക്ടറുടെ അപ്പോയിന്റ്മെന്റ് ബുക്ക് ചെയ്യണം, ഏത് ഡിപ്പാർട്ട്മെന്റിലാണ്?";
 
 export const BAR_COUNT = 44;
 export const STATIC_BAR_HEIGHT = 5;

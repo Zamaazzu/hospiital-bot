@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Mic } from "lucide-react";
 import { useWaveform } from "../../hooks/useWaveform";
-import { useSpeechToText } from "../../hooks/useSpeechToText";
+import { useAudioRecorder } from "../../hooks/useAudioRecorder";
+import { transcribeAudio, textToSpeech } from "../../services/api";
 import { BAR_COUNT, GREETING_TEXT } from "../../constants/departments";
 
 function PlasmaFace({ active }) {
@@ -116,44 +117,88 @@ export default function VoiceBot({ isListening, onToggle, onTranscript }) {
   // deaf during this, so it can't pick up the bot's own voice or the
   // user talking over it.
   const [isGreeting, setIsGreeting] = useState(false);
+  const [isTranscribing, setIsTranscribing] = useState(false);
+  const [transcript, setTranscript] = useState("");
+  const [speechError, setSpeechError] = useState(null);
+  const speechSupported =
+    typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
+
+  const { start: startRecording, stop: stopRecording } = useAudioRecorder();
+  const greetingAudioRef = useRef(null);
 
   const bars = useWaveform(isListening);
-  const { transcript, interimTranscript, supported: speechSupported, error: speechError } =
-    useSpeechToText(isListening && !isGreeting);
 
   useEffect(() => {
     if (onTranscript) onTranscript(transcript);
   }, [transcript, onTranscript]);
 
+  // Single sequential flow, triggered only by isListening:
+  //   1. Attempt the Malayalam greeting (Sarvam TTS) and wait for it to finish.
+  //   2. Start recording real WAV audio for the backend's Malayalam STT.
+  //   3. When isListening flips back to false, the cleanup below stops the
+  //      recording and sends it off for transcription.
+  // Doing this as one effect (instead of two effects reacting to each
+  // other's state) avoids a race where recording could start and get
+  // stopped again before the user had a chance to speak.
   useEffect(() => {
-    const synth = typeof window !== "undefined" ? window.speechSynthesis : null;
+    if (!isListening) return;
 
-    if (!synth) {
-      setIsGreeting(false);
-      return;
-    }
+    let cancelled = false;
+    let recordingStarted = false;
 
-    synth.cancel();
-
-    if (!isListening) {
-      setIsGreeting(false);
-      return;
-    }
-
+    setTranscript("");
+    setSpeechError(null);
     setIsGreeting(true);
-    try {
-      const utter = new SpeechSynthesisUtterance(GREETING_TEXT);
-      utter.rate = 1;
-      utter.pitch = 1.02;
-      utter.onend = () => setIsGreeting(false);
-      utter.onerror = () => setIsGreeting(false);
-      synth.speak(utter);
-    } catch (e) {
+
+    (async () => {
+      try {
+        const result = await textToSpeech(GREETING_TEXT);
+        if (!cancelled && result?.audio_base64) {
+          await new Promise((resolve) => {
+            const audio = new Audio(`data:audio/wav;base64,${result.audio_base64}`);
+            greetingAudioRef.current = audio;
+            audio.onended = resolve;
+            audio.onerror = resolve;
+            audio.play().catch(resolve);
+          });
+        }
+      } catch (e) {
+        // Greeting failed — fine, proceed straight to listening.
+      }
+
+      if (cancelled) return;
       setIsGreeting(false);
-    }
+
+      try {
+        await startRecording();
+        recordingStarted = true;
+      } catch (e) {
+        if (!cancelled) {
+          setSpeechError(e?.message === "Permission denied" ? "not-allowed" : "start-failed");
+        }
+      }
+    })();
 
     return () => {
-      synth.cancel();
+      cancelled = true;
+      if (greetingAudioRef.current) {
+        greetingAudioRef.current.pause();
+        greetingAudioRef.current = null;
+      }
+      if (recordingStarted) {
+        setIsTranscribing(true);
+        stopRecording()
+          .then((wavBlob) => transcribeAudio(wavBlob))
+          .then((result) => {
+            if (result.success === false) {
+              setSpeechError(result.error || "transcription-failed");
+              return;
+            }
+            setTranscript((prev) => (prev ? `${prev} ${result.transcript}`.trim() : result.transcript));
+          })
+          .catch(() => setSpeechError("transcription-failed"))
+          .finally(() => setIsTranscribing(false));
+      }
     };
   }, [isListening]);
 
@@ -183,23 +228,31 @@ export default function VoiceBot({ isListening, onToggle, onTranscript }) {
       </div>
 
       <div style={styles.micLabel}>
-        {isGreeting ? "Speaking…" : isListening ? "Listening…" : "Press & speak"}
+        {isGreeting
+          ? "Speaking…"
+          : isTranscribing
+          ? "Processing…"
+          : isListening
+          ? "Listening…"
+          : "Press & speak"}
       </div>
       <div style={styles.micSub}>
         {isGreeting
           ? "One moment, please…"
+          : isTranscribing
+          ? "Understanding what you said…"
           : isListening
           ? "Tap the mic to stop"
           : "Tap the microphone and speak"}
       </div>
 
-      {isListening && !isGreeting && (
+      {(isListening || isTranscribing) && !isGreeting && (
         <div style={styles.transcriptBox} className="hvb-fade-in">
           {!speechSupported ? (
             <span style={styles.transcriptPlaceholder}>
-              Voice input isn't supported in this browser — try Chrome or Edge.
+              Voice input isn't supported in this browser — microphone access is required.
             </span>
-          ) : speechError === "not-allowed" || speechError === "service-not-allowed" ? (
+          ) : speechError === "not-allowed" ? (
             <span style={styles.transcriptError}>
               Microphone access was blocked. Please allow microphone permission for this page
               (check the site/lock icon in your address bar) and tap the mic again.
@@ -208,13 +261,12 @@ export default function VoiceBot({ isListening, onToggle, onTranscript }) {
             <span style={styles.transcriptError}>
               Voice recognition hit an error ({speechError}). Tap the mic to try again.
             </span>
-          ) : transcript || interimTranscript ? (
-            <span>
-              {transcript}
-              {interimTranscript && <span style={styles.transcriptInterim}> {interimTranscript}</span>}
-            </span>
+          ) : transcript ? (
+            <span>{transcript}</span>
+          ) : isTranscribing ? (
+            <span style={styles.transcriptPlaceholder}>Processing…</span>
           ) : (
-            <span style={styles.transcriptPlaceholder}>Say a department name, e.g. "Cardiology"…</span>
+            <span style={styles.transcriptPlaceholder}>ഒരു ഡിപ്പാർട്ട്മെന്റിന്റെ പേര് പറയൂ…</span>
           )}
         </div>
       )}
