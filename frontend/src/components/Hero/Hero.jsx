@@ -61,7 +61,8 @@ const styles = {
 export default function Hero({
   isListening,
   onToggleListening,
-  onTranscript,
+  botReply,
+  onReply,
   showDoctors,
   onOpenDoctors,
   onOpenGeneralOp,
@@ -96,9 +97,9 @@ export default function Hero({
         <span>General OP</span>
       </button>
 
-      <Conversation isListening={isListening} />
+      <Conversation isListening={isListening} message={botReply || undefined} />
 
-      <VoiceBot isListening={isListening} onToggle={onToggleListening} onTranscript={onTranscript} />
+      <VoiceBot isListening={isListening} onToggle={onToggleListening} onReply={onReply} />
     </section>
   );
 }

@@ -3,8 +3,8 @@ import Header from "./Header/Header";
 import Hero from "./Hero/Hero";
 import Doctors from "./Doctors/Doctors";
 import Footer from "./Footer/Footer";
-import { DEPARTMENTS, GENERAL_OP } from "../constants/departments";
-import { matchDepartment } from "../utils/matchDepartment";
+import { GENERAL_OP } from "../constants/departments";
+import { styleForDeptName } from "./Doctors/Doctors";
 import "../styles/voicebot.css";
 
 const styles = {
@@ -34,12 +34,13 @@ const styles = {
 };
 
 export default function HospitalVoiceBotApp() {
-  const [isListening, setIsListening] = useState(true);
+  const [isListening, setIsListening] = useState(false);
   const [showDoctors, setShowDoctors] = useState(false);
   const [deptPage, setDeptPage] = useState(0);
   const [selectedDept, setSelectedDept] = useState(null);
   const [opForm, setOpForm] = useState({ name: "", age: "", gender: "" });
   const [opFormSubmitted, setOpFormSubmitted] = useState(false);
+  const [botReply, setBotReply] = useState(null);
 
   const openDoctors = () => {
     setSelectedDept(null);
@@ -56,24 +57,22 @@ export default function HospitalVoiceBotApp() {
 
   const closeDoctors = () => setShowDoctors(false);
 
-  // Voice-driven navigation: open a department (or General OP) when the
-  // user says its name. VoiceBot doesn't know about departments — it just
-  // reports the transcript here, and this is where that gets interpreted.
-  const handleTranscript = useCallback((transcript) => {
-    if (!transcript) return;
-    const lower = transcript.toLowerCase();
+  // The bot's spoken/text reply comes up from VoiceBot (via the /voice
+  // endpoint) and gets shown in the conversation bubble — see Hero.jsx and
+  // Conversation.jsx's `message` prop. When the backend also resolved a
+  // department from what was said (e.g. "cardiology"), open that
+  // department's page directly instead of leaving the person to find it
+  // themselves in the grid.
+  const handleReply = useCallback((replyText, departmentMatch) => {
+    setBotReply(replyText || null);
 
-    if (lower.includes("general") || lower.includes("casualty")) {
-      setOpForm({ name: "", age: "", gender: "" });
-      setOpFormSubmitted(false);
-      setSelectedDept(GENERAL_OP);
-      setShowDoctors(true);
-      return;
-    }
-
-    const match = matchDepartment(lower, DEPARTMENTS);
-    if (match) {
-      setSelectedDept(match);
+    if (departmentMatch?.id) {
+      setSelectedDept({
+        id: departmentMatch.id,
+        name: departmentMatch.name,
+        ...styleForDeptName(departmentMatch.name),
+      });
+      setDeptPage(0);
       setShowDoctors(true);
     }
   }, []);
@@ -101,7 +100,8 @@ export default function HospitalVoiceBotApp() {
         <Hero
           isListening={isListening}
           onToggleListening={() => setIsListening((v) => !v)}
-          onTranscript={handleTranscript}
+          botReply={botReply}
+          onReply={handleReply}
           showDoctors={showDoctors}
           onOpenDoctors={openDoctors}
           onOpenGeneralOp={openGeneralOp}
