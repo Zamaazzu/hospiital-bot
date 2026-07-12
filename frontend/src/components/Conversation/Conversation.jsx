@@ -73,7 +73,7 @@ export default function Conversation({ isListening, message = GREETING_TEXT }) {
 
   return (
     <p key="subtitle" style={styles.heroSubtitle}>
-      Speak naturally — booking, wait times and doctor availability, handled instantly.
+     നിങ്ങളുടെ ശബ്ദം മതി — അപ്പോയിന്റ്മെന്റ് മുതൽ ക്യൂ വരെ, എല്ലാം എളുപ്പമായി.
     </p>
   );
 }
