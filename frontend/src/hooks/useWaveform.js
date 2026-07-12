@@ -2,15 +2,16 @@ import { useState, useEffect, useRef } from "react";
 import { BAR_COUNT, STATIC_BAR_HEIGHT, SILENCE_THRESHOLD } from "../constants/departments";
 
 /**
- * Drives the waveform bars from the real microphone via getUserMedia +
- * AnalyserNode. Falls back to a flat static wave if mic permission is
- * denied/unavailable, or while the input is silent.
+ * Drives the waveform bars from the real microphone via an AnalyserNode.
+ * Takes the already-open mic stream (acquired once in VoiceBot) rather than
+ * calling getUserMedia itself, so it isn't competing with the recorder for
+ * a second capture stream on the same device. Falls back to a flat static
+ * wave if no stream is available yet, or while the input is silent.
  */
-export function useWaveform(isListening) {
+export function useWaveform(isListening, stream) {
   const [bars, setBars] = useState(() => Array.from({ length: BAR_COUNT }, () => STATIC_BAR_HEIGHT));
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
-  const streamRef = useRef(null);
   const rafRef = useRef(null);
   const dataArrayRef = useRef(null);
 
@@ -22,10 +23,6 @@ export function useWaveform(isListening) {
     function stop() {
       if (rafRef.current) cancelAnimationFrame(rafRef.current);
       rafRef.current = null;
-      if (streamRef.current) {
-        streamRef.current.getTracks().forEach((t) => t.stop());
-        streamRef.current = null;
-      }
       if (audioCtxRef.current) {
         audioCtxRef.current.close().catch(() => {});
         audioCtxRef.current = null;
@@ -37,16 +34,18 @@ export function useWaveform(isListening) {
 
     async function start() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        if (cancelled) {
-          stream.getTracks().forEach((t) => t.stop());
-          return;
-        }
-        streamRef.current = stream;
-
         const AudioContextClass = window.AudioContext || window.webkitAudioContext;
         const audioCtx = new AudioContextClass();
         audioCtxRef.current = audioCtx;
+
+        // See useAudioRecorder for why this matters: a freshly created
+        // AudioContext can start "suspended" and never actually process
+        // audio, silently leaving the visualization (and, there, the
+        // recording) dead with no error.
+        if (audioCtx.state === "suspended") {
+          await audioCtx.resume();
+        }
+        if (cancelled) return;
 
         const source = audioCtx.createMediaStreamSource(stream);
         const analyser = audioCtx.createAnalyser();
@@ -84,12 +83,12 @@ export function useWaveform(isListening) {
 
         tick();
       } catch (err) {
-        // mic permission denied or unavailable — fall back to a static wave
+        // AudioContext/analyser setup failed — fall back to a static wave
         toStatic();
       }
     }
 
-    if (isListening) {
+    if (isListening && stream) {
       start();
     } else {
       stop();
@@ -99,7 +98,7 @@ export function useWaveform(isListening) {
       cancelled = true;
       stop();
     };
-  }, [isListening]);
+  }, [isListening, stream]);
 
   return bars;
 }

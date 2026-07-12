@@ -37,18 +37,17 @@ export async function fetchDoctorDetails(doctorId) {
   return data.doctor;
 }
 
-// POST /transcribe (multipart form, field name "file")
-// -> { success: true, transcript, confidence }
-// -> { success: false, error }
-export async function transcribeAudio(wavBlob) {
+// POST /voice (multipart, field name "audio")
+// -> { reply_text, audio_url, audio_base64 }
+export async function sendVoiceMessage(wavBlob) {
   const formData = new FormData();
-  formData.append("file", wavBlob, "recording.wav");
+  formData.append("audio", wavBlob, "recording.wav");
 
-  const res = await fetch(`${BASE_URL}/transcribe`, {
+  const res = await fetch(`${BASE_URL}/voice`, {
     method: "POST",
     body: formData, // browser sets the multipart boundary; do not set Content-Type manually
   });
-  return handleResponse(res, "Transcription");
+  return handleResponse(res, "Voice request");
 }
 
 // POST /tts  body: { text }

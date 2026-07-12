@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from "react";
 import { Mic } from "lucide-react";
 import { useWaveform } from "../../hooks/useWaveform";
 import { useAudioRecorder } from "../../hooks/useAudioRecorder";
-import { transcribeAudio, textToSpeech } from "../../services/api";
+import { sendVoiceMessage, textToSpeech } from "../../services/api";
 import { BAR_COUNT, GREETING_TEXT } from "../../constants/departments";
 
 function PlasmaFace({ active }) {
@@ -105,39 +105,54 @@ const styles = {
 /**
  * Self-contained voice interaction module: mic button + Siri-style listening
  * animation + live transcript box + waveform bars driven by the real
- * microphone. Owns both the audio-level hook and the speech-to-text hook.
+ * microphone. Owns both the audio-level hook and the voice hook.
  *
- * Reports the recognized transcript upward via `onTranscript` so the parent
- * can drive voice navigation (e.g. opening a department when its name is
- * spoken) without VoiceBot needing to know about departments at all.
+ * Reports the bot's spoken reply upward via `onReply` so the parent can show
+ * it in the conversation bubble (see Conversation.jsx's `message` prop).
  */
-// WITH THIS:
-export default function VoiceBot({ isListening, onToggle, onTranscript }) {
+export default function VoiceBot({ isListening, onToggle, onReply }) {
   // True only while the greeting is being spoken — the mic must stay
   // deaf during this, so it can't pick up the bot's own voice or the
   // user talking over it.
   const [isGreeting, setIsGreeting] = useState(false);
   const [isTranscribing, setIsTranscribing] = useState(false);
-  const [transcript, setTranscript] = useState("");
+  const [botReply, setBotReply] = useState("");
+  // Department the backend resolved from the spoken request (if any) —
+  // { id, name } or null. Reported upward alongside the reply text so the
+  // parent can auto-open that department instead of just showing text.
+  const [departmentMatch, setDepartmentMatch] = useState(null);
   const [speechError, setSpeechError] = useState(null);
+  // The one live microphone stream for this listening session, shared by
+  // the waveform visualizer and the recorder below — see the effect for
+  // why acquiring it just once here (rather than each hook independently
+  // calling getUserMedia) matters.
+  const [micStream, setMicStream] = useState(null);
   const speechSupported =
     typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 
   const { start: startRecording, stop: stopRecording } = useAudioRecorder();
   const greetingAudioRef = useRef(null);
+  const micStreamRef = useRef(null);
 
-  const bars = useWaveform(isListening);
+  const bars = useWaveform(isListening, micStream);
 
   useEffect(() => {
-    if (onTranscript) onTranscript(transcript);
-  }, [transcript, onTranscript]);
+    if (onReply) onReply(botReply, departmentMatch);
+  }, [botReply, departmentMatch, onReply]);
 
   // Single sequential flow, triggered only by isListening:
-  //   1. Attempt the Malayalam greeting (Sarvam TTS) and wait for it to finish.
-  //   2. Start recording real WAV audio for the backend's Malayalam STT.
-  //   3. When isListening flips back to false, the cleanup below stops the
-  //      recording and sends it off for transcription.
-  // Doing this as one effect (instead of two effects reacting to each
+  //   1. Grab one microphone stream up front and share it with the
+  //      waveform visualizer (previously each of the waveform and the
+  //      recorder independently called getUserMedia, opening two separate
+  //      capture streams for the same device — on a lot of real hardware
+  //      only one of those actually delivers audio, so the recording could
+  //      end up silent with no error shown anywhere).
+  //   2. Attempt the Malayalam greeting (Sarvam TTS) and wait for it to finish.
+  //   3. Start recording real WAV audio for the backend's Malayalam STT,
+  //      using that same shared stream.
+  //   4. When isListening flips back to false, the cleanup below stops the
+  //      recording and sends it to /voice for transcription + reply + TTS.
+  // Doing this as one effect (instead of separate effects reacting to each
   // other's state) avoids a race where recording could start and get
   // stopped again before the user had a chance to speak.
   useEffect(() => {
@@ -146,11 +161,29 @@ export default function VoiceBot({ isListening, onToggle, onTranscript }) {
     let cancelled = false;
     let recordingStarted = false;
 
-    setTranscript("");
+    setBotReply("");
+    setDepartmentMatch(null);
     setSpeechError(null);
     setIsGreeting(true);
 
     (async () => {
+      let stream;
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      } catch (e) {
+        if (!cancelled) {
+          setSpeechError(e?.name === "NotAllowedError" ? "not-allowed" : "start-failed");
+          setIsGreeting(false);
+        }
+        return;
+      }
+      if (cancelled) {
+        stream.getTracks().forEach((t) => t.stop());
+        return;
+      }
+      micStreamRef.current = stream;
+      setMicStream(stream);
+
       try {
         const result = await textToSpeech(GREETING_TEXT);
         if (!cancelled && result?.audio_base64) {
@@ -170,7 +203,7 @@ export default function VoiceBot({ isListening, onToggle, onTranscript }) {
       setIsGreeting(false);
 
       try {
-        await startRecording();
+        await startRecording(stream);
         recordingStarted = true;
       } catch (e) {
         if (!cancelled) {
@@ -188,16 +221,26 @@ export default function VoiceBot({ isListening, onToggle, onTranscript }) {
       if (recordingStarted) {
         setIsTranscribing(true);
         stopRecording()
-          .then((wavBlob) => transcribeAudio(wavBlob))
+          .then((wavBlob) => sendVoiceMessage(wavBlob))
           .then((result) => {
-            if (result.success === false) {
-              setSpeechError(result.error || "transcription-failed");
-              return;
+            setBotReply(result.reply_text || "");
+            setDepartmentMatch(
+              result.department_id
+                ? { id: result.department_id, name: result.department_name }
+                : null
+            );
+            if (result.audio_base64) {
+              const audio = new Audio(`data:audio/wav;base64,${result.audio_base64}`);
+              audio.play().catch(() => {});
             }
-            setTranscript((prev) => (prev ? `${prev} ${result.transcript}`.trim() : result.transcript));
           })
           .catch(() => setSpeechError("transcription-failed"))
           .finally(() => setIsTranscribing(false));
+      }
+      if (micStreamRef.current) {
+        micStreamRef.current.getTracks().forEach((t) => t.stop());
+        micStreamRef.current = null;
+        setMicStream(null);
       }
     };
   }, [isListening]);
@@ -261,12 +304,12 @@ export default function VoiceBot({ isListening, onToggle, onTranscript }) {
             <span style={styles.transcriptError}>
               Voice recognition hit an error ({speechError}). Tap the mic to try again.
             </span>
-          ) : transcript ? (
-            <span>{transcript}</span>
+          ) : botReply ? (
+            <span>{botReply}</span>
           ) : isTranscribing ? (
             <span style={styles.transcriptPlaceholder}>Processing…</span>
           ) : (
-            <span style={styles.transcriptPlaceholder}>ഒരു ഡിപ്പാർട്ട്മെന്റിന്റെ പേര് പറയൂ…</span>
+            <span style={styles.transcriptPlaceholder}>സംസാരിക്കൂ…</span>
           )}
         </div>
       )}

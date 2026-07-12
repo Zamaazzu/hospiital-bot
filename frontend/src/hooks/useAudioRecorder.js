@@ -35,21 +35,33 @@ function encodeWAV(samples, sampleRate) {
 }
 
 export function useAudioRecorder() {
-  const streamRef = useRef(null);
   const audioCtxRef = useRef(null);
   const processorRef = useRef(null);
   const sourceRef = useRef(null);
   const chunksRef = useRef([]);
   const sampleRateRef = useRef(16000);
 
-  const start = useCallback(async () => {
-    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-    streamRef.current = stream;
+  // Takes the already-open mic stream (acquired once in VoiceBot and shared
+  // with the waveform visualizer) instead of calling getUserMedia itself —
+  // avoids opening a second, possibly-silent capture stream on top of the
+  // one already in use.
+  const start = useCallback(async (stream) => {
+    if (!stream) throw new Error("No microphone stream available");
 
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     const audioCtx = new AudioContextClass();
     audioCtxRef.current = audioCtx;
     sampleRateRef.current = audioCtx.sampleRate;
+
+    // AudioContexts can be created in a "suspended" state — especially
+    // likely here since this runs after an `await` (the greeting playback),
+    // by which point the browser may no longer count this as a fresh user
+    // gesture. Left suspended, onaudioprocess never fires and the recording
+    // is silence with no error raised anywhere. Explicitly resuming makes
+    // sure audio actually flows.
+    if (audioCtx.state === "suspended") {
+      await audioCtx.resume();
+    }
 
     const source = audioCtx.createMediaStreamSource(stream);
     sourceRef.current = source;
@@ -70,7 +82,6 @@ export function useAudioRecorder() {
     return new Promise((resolve) => {
       processorRef.current?.disconnect();
       sourceRef.current?.disconnect();
-      streamRef.current?.getTracks().forEach((t) => t.stop());
       audioCtxRef.current?.close().catch(() => {});
 
       const totalLength = chunksRef.current.reduce((sum, c) => sum + c.length, 0);
