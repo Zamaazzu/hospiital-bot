@@ -38,7 +38,8 @@ def speak(text:str):
 
         return {
             "success": True,
-            "audio_path": output_path
+            "audio_path": output_path,
+            "audio_base64": audio_base64
         }
     except requests.exceptions.Timeout:
         return {

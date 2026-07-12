@@ -144,8 +144,11 @@ async def voice(audio: UploadFile = File(...)):
         if tts_result.get("success", False):
             audio_url = f"/{tts_result['audio_path']}"
 
-        return {"reply_text": reply_text, "audio_url": audio_url}
-
+        return {
+            "reply_text": reply_text,
+            "audio_url": audio_url,
+            "audio_base64": tts_result.get("audio_base64")
+        }
     except Exception as e:
         print(f"Voice endpoint error: {e}")
         return {"reply_text": "Sorry, something went wrong. Please try again.", "audio_url": None}
@@ -156,7 +159,11 @@ def tts(request: TTSRequest):
     result = speak(request.text)
     if not result.get("success", False):
         return {"success": False, "message": result.get("message", result.get("error", "TTS failed"))}
-    return {"success": True, "audio_url": f"/{result['audio_path']}"}
+    return {
+        "success": True,
+        "audio_url": f"/{result['audio_path']}",
+        "audio_base64": result.get("audio_base64")
+    }
 
 
 @app.get("/token_status")
