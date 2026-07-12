@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 import base64
 
 load_dotenv()
-api_key = os.getenv("sarvam_api_key")
+api_key = os.getenv("SARVAM_API_KEY")
 url="https://api.sarvam.ai/text-to-speech"
 default_language = "ml-IN"
 def speak(text:str):
@@ -38,7 +38,8 @@ def speak(text:str):
 
         return {
             "success": True,
-            "audio_path": output_path
+            "audio_path": output_path,
+            "audio_base64": audio_base64
         }
     except requests.exceptions.Timeout:
         return {
