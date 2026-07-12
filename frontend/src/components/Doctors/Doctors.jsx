@@ -3,6 +3,7 @@ import {
   X,
   ArrowLeft,
   ChevronRight,
+  ChevronLeft,
   Clock,
   CheckCircle2,
   AlertTriangle,
@@ -147,6 +148,20 @@ const styles = {
     flexShrink: 0,
   },
   nextPageBtn: {
+    display: "flex",
+    alignItems: "center",
+    gap: "6px",
+    border: "1px solid #DCCEFF",
+    background: "#fff",
+    color: "#6D42D8",
+    fontWeight: 700,
+    fontSize: "13px",
+    padding: "10px 18px",
+    borderRadius: "999px",
+    cursor: "pointer",
+    boxShadow: "0 6px 20px rgba(122,80,220,.15)",
+  },
+  prevPageBtn: {
     display: "flex",
     alignItems: "center",
     gap: "6px",
@@ -821,16 +836,29 @@ export default function Doctors({
                 ))}
               </div>
 
-              {deptPage < totalPages - 1 && (
+              {(deptPage > 0 || deptPage < totalPages - 1) && (
                 <div style={styles.paginationRow}>
-                  <button
-                    onClick={() => setDeptPage((p) => Math.min(p + 1, totalPages - 1))}
-                    className="hvb-next-page-btn"
-                    style={styles.nextPageBtn}
-                  >
-                    Next page
-                    <ChevronRight size={16} />
-                  </button>
+                  {deptPage > 0 && (
+                    <button
+                      onClick={() => setDeptPage((p) => Math.max(p - 1, 0))}
+                      className="hvb-prev-page-btn"
+                      style={styles.prevPageBtn}
+                    >
+                      <ChevronLeft size={16} />
+                      Previous page
+                    </button>
+                  )}
+
+                  {deptPage < totalPages - 1 && (
+                    <button
+                      onClick={() => setDeptPage((p) => Math.min(p + 1, totalPages - 1))}
+                      className="hvb-next-page-btn"
+                      style={styles.nextPageBtn}
+                    >
+                      Next page
+                      <ChevronRight size={16} />
+                    </button>
+                  )}
                 </div>
               )}
             </>

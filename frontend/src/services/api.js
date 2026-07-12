@@ -37,6 +37,34 @@ export async function fetchDoctorDetails(doctorId) {
   return data.doctor;
 }
 
+// POST /transcribe (multipart form, field name "file")
+// -> { success: true, transcript, confidence }
+// -> { success: false, error }
+export async function transcribeAudio(wavBlob) {
+  const formData = new FormData();
+  formData.append("file", wavBlob, "recording.wav");
+
+  const res = await fetch(`${BASE_URL}/transcribe`, {
+    method: "POST",
+    body: formData, // browser sets the multipart boundary; do not set Content-Type manually
+  });
+  return handleResponse(res, "Transcription");
+}
+
+// POST /tts  body: { text }
+// -> { success: true, audio_path, audio_base64 }
+// NOTE: requires person 4 to add "audio_base64" to the /tts response on the
+// backend — right now it only returns a server-local file path, which the
+// browser can't play.
+export async function textToSpeech(text) {
+  const res = await fetch(`${BASE_URL}/tts`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  return handleResponse(res, "Text-to-speech");
+}
+
 export async function sendChatMessage(message) {
   const res = await fetch(`${BASE_URL}/chat`, {
     method: "POST",

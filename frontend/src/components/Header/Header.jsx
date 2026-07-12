@@ -1,5 +1,6 @@
 import React from "react";
-import { Plus, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
+import hospitalLogo from "../../assets/hospital-logo-icon.png";
 
 const styles = {
   header: {
@@ -15,12 +16,16 @@ const styles = {
     width: 54,
     height: 54,
     borderRadius: 18,
-    background: "linear-gradient(150deg, #F4C8F4 0%, #B86FEA 45%, #6A3FD6 100%)",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    boxShadow: "0 8px 22px rgba(106,63,214,0.4), inset 0 1px 1px rgba(255,255,255,0.35)",
-    border: "1px solid rgba(255,255,255,0.4)",
+    boxShadow: "0 8px 22px rgba(106,63,214,0.4)",
+    overflow: "hidden",
+  },
+  logoImage: {
+    height: "58px",
+    width: "auto",
+    display: "block",
   },
   brand: {
     fontFamily: "'Sora', sans-serif",
@@ -65,9 +70,7 @@ export default function Header() {
   return (
     <header style={styles.header} className="hvb-fade-in">
       <div style={styles.logoRow}>
-        <div style={styles.logoBadge} className="hvb-logo-badge">
-          <Plus size={25} color="#fff" strokeWidth={3} />
-        </div>
+        <img src={hospitalLogo} alt="Hospital logo" style={styles.logoImage} />
         <div style={styles.datePill} className="hvb-date-pill">
         <Calendar size={14} />
         <span>{getTodayLabel()}</span>
