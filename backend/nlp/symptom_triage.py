@@ -2,6 +2,19 @@
 
 SYMPTOM_MAP = {
 
+    #────Malayalam Added────────────────────────────────────
+    "നെഞ്ചുവേദന": "Cardiology",
+    "ഹൃദ്രോഗം": "Cardiology",
+    "തലവേദന": "Neurology",
+    "വയർ വേദന": "Gastroenterology",
+    "ചെവി വേദന": "ENT",
+    "ചുമ": "Pulmanology",
+    "പനി": "Emergency Medicine",
+    "കുട്ടിക്ക് പനി": "Paediatrics",
+    "ഗർഭിണി": "Obstetrics & Gynaecology",
+    "പല്ലുവേദന": "Dental Maxillofacial Surgery",
+    "കാൽ വേദന": "Orthopaedics",
+    "ശ്വാസതടസ്സം": "Pulmanology",
     # ── Cardiology ────────────────────────────────────────
     "nenju vedana": "Cardiology",
     "nenju valivu": "Cardiology",
