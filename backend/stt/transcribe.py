@@ -2,7 +2,7 @@ import os
 from dotenv import load_dotenv
 import requests
 load_dotenv()
-api_key = os.getenv("sarvam_api_key")
+api_key = os.getenv("SARVAM_API_KEY")
 url = "https://api.sarvam.ai/speech-to-text"
 
 def transcribe_audio(audio_path):
