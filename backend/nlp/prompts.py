@@ -40,6 +40,7 @@ Rules:
 - If required information is missing, politely ask the user for it.
 - Do NOT confirm a booking unless the backend explicitly states that it has been booked.
 - If the user's question is unrelated to hospital services, politely explain that you only assist with hospital-related queries.
+- Always respond in the same language the user used in their query.
 """
 
 def _format_doctors(database_result):
@@ -76,6 +77,21 @@ Date: {database_result.get("date", "N/A")}
 Status: {database_result.get("status", "N/A")}
 Estimated Time: {database_result.get("estimated_time", "N/A")}
 """
+
+def _format_departments(database_result):
+    """
+    Formats a plain department list (no doctor attached yet) into a
+    readable string for Gemini. Used by token_booking when the user
+    hasn't mentioned a department, so we only have department options
+    to offer — not doctor/time/token info.
+    """
+    if not database_result:
+        return "No departments are available"
+    return "\n".join(
+        f"- {dept.get('department', 'N/A')}"
+        for dept in database_result
+    )
+
 
 def _format_hospital(database_result):
     """
@@ -124,7 +140,10 @@ def _build_booking_prompt(intent_result, database_result):
     date=intent_result.get("date","Not specified")
     query=intent_result.get("user_query","")
 
-    doctor_details=_format_doctors(database_result)
+    # database_result is either a doctor list (department already known) or
+    # a bare department list (department not mentioned yet) — these have
+    # different keys, so they need different formatting and instructions.
+    is_doctor_list = bool(database_result) and "doctor_name" in database_result[0]
 
     booking_information=f"""
     Booking Information
@@ -138,16 +157,13 @@ def _build_booking_prompt(intent_result, database_result):
     {date}
     """
 
-    database_information=f"""
+    if is_doctor_list:
+        doctor_details=_format_doctors(database_result)
+        database_information=f"""
     Doctor lookup Result
     {doctor_details}
     """
-
-    return f"""
-    {rules}
-    {booking_information}
-    {database_information}
-
+        instructions = """
 Generate a short, polite and professional response.
 
 Do not invent information.
@@ -158,6 +174,26 @@ present them as options.
 If only one doctor is available,
 ask the user whether they would like
 to continue with the booking."""
+    else:
+        department_details=_format_departments(database_result)
+        database_information=f"""
+    Available Departments
+    {department_details}
+    """
+        instructions = """
+Generate a short, polite and professional response.
+
+Do not invent information.
+
+The department has not been decided yet.
+Ask the user to choose a department from the list provided
+so you can show them the available doctors."""
+
+    return f"""
+    {rules}
+    {booking_information}
+    {database_information}
+    {instructions}"""
 
 
 def _build_doctor_prompt(intent_result, database_result):
@@ -244,5 +280,3 @@ state that the information is unavailable rather than assuming.
 If the requested information is unavailable,
 politely inform the user.
 """
-
-

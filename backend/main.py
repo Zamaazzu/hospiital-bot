@@ -68,7 +68,8 @@ def process_chat(user_text: str) -> dict:
     extracted_result = extract_intent_slots(user_text)
     intent_result = adapt_intent_result(user_text, extracted_result)
     intent = intent_result.get("intent")
-
+    print(f"DEBUG text reaching NLP: {repr(user_text)}")
+    print(f"DEBUG intent_result: {intent_result}")
     if intent == "doctor_availability":
         department_name = intent_result.get("department")
         database_result = lookup_available_doctors(
@@ -146,12 +147,57 @@ def process_chat(user_text: str) -> dict:
         }
 
     elif intent == "token_booking":
-        return {
-            "text": "I can help you book an appointment. Please select a department from the list to see available doctors.",
-            "data": None,
-            "action": "show_departments",
-            **_empty_dept_fields()
-        }
+        department_name = intent_result.get("department")
+
+        if department_name:
+            # Department already known from the user's message (e.g. "cardiology
+            # doctor book cheyyanam") — skip straight to that department's doctors,
+            # same as doctor_availability does.
+            database_result = lookup_available_doctors(
+                department=department_name,
+                doctor=intent_result.get("doctor"),
+                date=intent_result.get("date")
+            )
+
+            if not database_result:
+                prompt = build_prompt(intent_result, None)
+                response = ask_gemini(prompt)
+                text = response or "Sorry, no doctors were found for that department right now."
+                return {
+                    "text": text,
+                    "data": None,
+                    "action": None,
+                    **_empty_dept_fields()
+                }
+
+            prompt = build_prompt(intent_result, database_result)
+            response = ask_gemini(prompt)
+            text = response or "Sorry, the AI service is currently unavailable. Please try again later."
+
+            dept_info = get_department_by_name(department_name)
+
+            return {
+                "text": text,
+                "data": database_result,
+                "action": "show_doctors",
+                "department_id": dept_info["department_id"] if dept_info else None,
+                "department_name": dept_info["department_name"] if dept_info else None
+            }
+
+        else:
+            # No department mentioned yet — show the department list so the
+            # user (or frontend) can pick one.
+            departments = get_departments()
+            prompt = build_prompt(intent_result, departments)
+            response = ask_gemini(prompt)
+            text = response or "Please select a department to proceed with booking."
+
+            return {
+                "text": text,
+                "data": departments,
+                "action": "show_departments",
+                **_empty_dept_fields()
+            }
 
     elif intent == "cancel_token":
         return {
