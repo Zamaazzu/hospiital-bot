@@ -220,6 +220,7 @@ Pesivali=Physiotherapy
 
 ഹൃദ്രോഗം=Cardiology
 ഹൃദയം=Cardiology
+ഹൃദയ=Cardiology
 നെഞ്ചുവേദന=Cardiology
 നെഞ്ചിടിപ്പ്=Cardiology
 കാർഡിയോളജി=Cardiology
