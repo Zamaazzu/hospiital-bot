@@ -3,7 +3,7 @@ import Header from "./Header/Header";
 import Hero from "./Hero/Hero";
 import Doctors from "./Doctors/Doctors";
 import Footer from "./Footer/Footer";
-import { GENERAL_OP } from "../constants/departments";
+import { GENERAL_OP, GREETING_TEXT } from "../constants/departments";
 import { styleForDeptName } from "./Doctors/Doctors";
 import "../styles/voicebot.css";
 
@@ -34,13 +34,20 @@ const styles = {
 };
 
 export default function HospitalVoiceBotApp() {
-  const [isListening, setIsListening] = useState(true);
+  const [isListening, setIsListening] = useState(false);
   const [showDoctors, setShowDoctors] = useState(false);
   const [deptPage, setDeptPage] = useState(0);
   const [selectedDept, setSelectedDept] = useState(null);
   const [opForm, setOpForm] = useState({ name: "", age: "", gender: "" });
   const [opFormSubmitted, setOpFormSubmitted] = useState(false);
   const [botReply, setBotReply] = useState(null);
+  // Bumped every time a token booking completes — VoiceBot watches this to
+  // know when to allow the greeting to play again for the next person.
+  const [greetingResetKey, setGreetingResetKey] = useState(0);
+
+  const handleBookingComplete = useCallback(() => {
+    setGreetingResetKey((k) => k + 1);
+  }, []);
 
   const openDoctors = () => {
     setSelectedDept(null);
@@ -63,8 +70,11 @@ export default function HospitalVoiceBotApp() {
   // department from what was said (e.g. "cardiology"), open that
   // department's page directly instead of leaving the person to find it
   // themselves in the grid.
-  const handleReply = useCallback((replyText, departmentMatch) => {
-    setBotReply(replyText || null);
+  const handleReply = useCallback((replyText, departmentMatch, isGreetingActive) => {
+    // Only show the greeting text while it's actually being spoken — once
+    // the greeting finishes (or is skipped on repeat taps), don't leave it
+    // lingering in the bubble.
+    setBotReply(isGreetingActive ? GREETING_TEXT : replyText || null);
 
     if (departmentMatch?.id) {
       setSelectedDept({
@@ -92,6 +102,7 @@ export default function HospitalVoiceBotApp() {
         setOpForm={setOpForm}
         opFormSubmitted={opFormSubmitted}
         setOpFormSubmitted={setOpFormSubmitted}
+        onBookingComplete={handleBookingComplete}
       />
 
       <div style={styles.page}>
@@ -102,6 +113,7 @@ export default function HospitalVoiceBotApp() {
           onToggleListening={() => setIsListening((v) => !v)}
           botReply={botReply}
           onReply={handleReply}
+          greetingResetKey={greetingResetKey}
           showDoctors={showDoctors}
           onOpenDoctors={openDoctors}
           onOpenGeneralOp={openGeneralOp}

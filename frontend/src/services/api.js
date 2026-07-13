@@ -90,10 +90,10 @@ export async function checkTokenStatus(tokenNumber) {
 }
 
 // POST /book
-// body: { schedule_id, name, phone, age, gender }
+// body: { schedule_id, name, age, gender }
 // -> { success: true, token_number, status, doctor_name, department, hospital, date, report_time, booking_time }
 // -> { success: false, message }
-export async function bookToken({ scheduleId, name, age, gender, phone }) {
+export async function bookToken({ scheduleId, name, age, gender }) {
   const res = await fetch(`${BASE_URL}/book`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -102,7 +102,6 @@ export async function bookToken({ scheduleId, name, age, gender, phone }) {
       name,
       age: age === "" || age === undefined ? null : Number(age),
       gender: gender || null,
-      phone: phone || null,
     }),
   });
   return handleResponse(res, "Booking");
