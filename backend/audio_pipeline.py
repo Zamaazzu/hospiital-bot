@@ -1,6 +1,6 @@
-from noise.vad import detect_speech
-from noise.denoise import denoise_audio
-from stt.transcribe import transcribe_audio
+from backend.noise.vad import detect_speech
+from backend.noise.denoise import denoise_audio
+from backend.stt.transcribe import transcribe_audio
 
 
 def process_audio(audio_path):
