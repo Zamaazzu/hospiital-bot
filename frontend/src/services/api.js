@@ -38,7 +38,14 @@ export async function fetchDoctorDetails(doctorId) {
 }
 
 // POST /voice (multipart, field name "audio")
-// -> { reply_text, audio_url, audio_base64 }
+// -> { reply_text, audio_url, audio_base64, data, action, department_id, department_name }
+// department_id/department_name are set when the request resolved to a
+// specific department, so the caller can auto-navigate there.
+// action is one of "show_doctors" | "show_token_status" | "show_departments" | null,
+// with `data` carrying the structured payload for that action (doctor list,
+// token status, etc.) — currently only department_id/department_name are
+// consumed on the frontend; `data`/`action` are available for richer
+// rendering (e.g. a token status card) if/when that's built out.
 export async function sendVoiceMessage(wavBlob) {
   const formData = new FormData();
   formData.append("audio", wavBlob, "recording.wav");

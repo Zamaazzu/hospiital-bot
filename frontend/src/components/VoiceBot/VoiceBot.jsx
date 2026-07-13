@@ -122,37 +122,24 @@ export default function VoiceBot({ isListening, onToggle, onReply }) {
   // parent can auto-open that department instead of just showing text.
   const [departmentMatch, setDepartmentMatch] = useState(null);
   const [speechError, setSpeechError] = useState(null);
-  // The one live microphone stream for this listening session, shared by
-  // the waveform visualizer and the recorder below — see the effect for
-  // why acquiring it just once here (rather than each hook independently
-  // calling getUserMedia) matters.
-  const [micStream, setMicStream] = useState(null);
   const speechSupported =
     typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia;
 
   const { start: startRecording, stop: stopRecording } = useAudioRecorder();
   const greetingAudioRef = useRef(null);
-  const micStreamRef = useRef(null);
 
-  const bars = useWaveform(isListening, micStream);
+  const bars = useWaveform(isListening);
 
   useEffect(() => {
     if (onReply) onReply(botReply, departmentMatch);
   }, [botReply, departmentMatch, onReply]);
 
   // Single sequential flow, triggered only by isListening:
-  //   1. Grab one microphone stream up front and share it with the
-  //      waveform visualizer (previously each of the waveform and the
-  //      recorder independently called getUserMedia, opening two separate
-  //      capture streams for the same device — on a lot of real hardware
-  //      only one of those actually delivers audio, so the recording could
-  //      end up silent with no error shown anywhere).
-  //   2. Attempt the Malayalam greeting (Sarvam TTS) and wait for it to finish.
-  //   3. Start recording real WAV audio for the backend's Malayalam STT,
-  //      using that same shared stream.
-  //   4. When isListening flips back to false, the cleanup below stops the
+  //   1. Attempt the Malayalam greeting (Sarvam TTS) and wait for it to finish.
+  //   2. Start recording real WAV audio for the backend's Malayalam STT.
+  //   3. When isListening flips back to false, the cleanup below stops the
   //      recording and sends it to /voice for transcription + reply + TTS.
-  // Doing this as one effect (instead of separate effects reacting to each
+  // Doing this as one effect (instead of two effects reacting to each
   // other's state) avoids a race where recording could start and get
   // stopped again before the user had a chance to speak.
   useEffect(() => {
@@ -167,23 +154,6 @@ export default function VoiceBot({ isListening, onToggle, onReply }) {
     setIsGreeting(true);
 
     (async () => {
-      let stream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      } catch (e) {
-        if (!cancelled) {
-          setSpeechError(e?.name === "NotAllowedError" ? "not-allowed" : "start-failed");
-          setIsGreeting(false);
-        }
-        return;
-      }
-      if (cancelled) {
-        stream.getTracks().forEach((t) => t.stop());
-        return;
-      }
-      micStreamRef.current = stream;
-      setMicStream(stream);
-
       try {
         const result = await textToSpeech(GREETING_TEXT);
         if (!cancelled && result?.audio_base64) {
@@ -203,7 +173,7 @@ export default function VoiceBot({ isListening, onToggle, onReply }) {
       setIsGreeting(false);
 
       try {
-        await startRecording(stream);
+        await startRecording();
         recordingStarted = true;
       } catch (e) {
         if (!cancelled) {
@@ -236,11 +206,6 @@ export default function VoiceBot({ isListening, onToggle, onReply }) {
           })
           .catch(() => setSpeechError("transcription-failed"))
           .finally(() => setIsTranscribing(false));
-      }
-      if (micStreamRef.current) {
-        micStreamRef.current.getTracks().forEach((t) => t.stop());
-        micStreamRef.current = null;
-        setMicStream(null);
       }
     };
   }, [isListening]);

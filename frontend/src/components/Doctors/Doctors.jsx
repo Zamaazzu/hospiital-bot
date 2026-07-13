@@ -39,7 +39,7 @@ const DEPT_STYLE_BY_NAME = {
 };
 const DEFAULT_DEPT_STYLE = { Icon: Stethoscope, accent: "#8A5AE5", tint: "#EFE7FE" };
 
-function styleForDeptName(name) {
+export function styleForDeptName(name) {
   const key = (name || "").trim().toLowerCase();
   return DEPT_STYLE_BY_NAME[key] || DEFAULT_DEPT_STYLE;
 }
