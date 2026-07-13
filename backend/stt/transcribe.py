@@ -18,7 +18,7 @@ def transcribe_audio(audio_path):
             headers = {
                      "api-subscription-key": api_key
                                     }
-            data = { "language": "ml-IN",  "model": "saaras:v3" }
+            data = { "language_code": "ml-IN",  "model": "saaras:v3" }
             
             files = {
                         "file": (
