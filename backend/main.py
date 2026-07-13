@@ -13,7 +13,7 @@ from backend.booking.op_schedule_lookup import (
 )
 from backend.booking.token_booking import book_token, get_token_status
 from backend.booking.hospital_lookup import lookup_hospital_info
-from backend.booking.department_lookup import get_departments
+from backend.booking.department_lookup import get_departments, get_department_by_name
 from backend.audio_pipeline import process_audio
 from backend.tts.speak import speak
 
@@ -48,60 +48,134 @@ class TTSRequest(BaseModel):
     text: str
 
 
-def process_chat(user_text: str) -> str:
-    """Shared logic for /chat and /voice. Returns the reply as plain text."""
+def _empty_dept_fields():
+    """Default department_id/department_name pair used when no department applies."""
+    return {"department_id": None, "department_name": None}
+
+
+def process_chat(user_text: str) -> dict:
+    """
+    Shared logic for /chat and /voice.
+    Returns:
+    {
+        "text": str,
+        "data": list|dict|None,
+        "action": str|None,
+        "department_id": int|None,
+        "department_name": str|None
+    }
+    """
     extracted_result = extract_intent_slots(user_text)
     intent_result = adapt_intent_result(user_text, extracted_result)
     intent = intent_result.get("intent")
 
     if intent == "doctor_availability":
-        print(f"DEBUG — department: {intent_result.get('department')}, doctor: {intent_result.get('doctor')}, date: {intent_result.get('date')}")
-        
+        department_name = intent_result.get("department")
         database_result = lookup_available_doctors(
-            department=intent_result.get("department"),
+            department=department_name,
             doctor=intent_result.get("doctor"),
             date=intent_result.get("date")
         )
-        print(f"DEBUG — database_result: {database_result}")
+        print(f"DEBUG — department extracted: {intent_result.get('department')}")
         if not database_result:
-            return "No doctors found for your request."
+            return {
+                "text": "No doctors found for your request.",
+                "data": None,
+                "action": None,
+                **_empty_dept_fields()
+            }
+
         prompt = build_prompt(intent_result, database_result)
         response = ask_gemini(prompt)
-        return response or "Sorry, the AI service is currently unavailable. Please try again later."
+        text = response or "Sorry, the AI service is currently unavailable. Please try again later."
+
+        dept_info = get_department_by_name(department_name) if department_name else None
+
+        return {
+            "text": text,
+            "data": database_result,
+            "action": "show_doctors",
+            "department_id": dept_info["department_id"] if dept_info else None,
+            "department_name": dept_info["department_name"] if dept_info else None
+        }
 
     elif intent == "token_status":
         token_number = intent_result.get("ticket_number")
         if not token_number:
-            return "Please provide your token number to check its status."
+            return {
+                "text": "Please provide your token number to check its status.",
+                "data": None,
+                "action": None,
+                **_empty_dept_fields()
+            }
         database_result = get_token_status(token_number)
         if not database_result or database_result.get("success") is False:
-            return "Sorry, I couldn't find that token. Please check the number and try again."
+            return {
+                "text": "Sorry, I couldn't find that token. Please check the number and try again.",
+                "data": None,
+                "action": None,
+                **_empty_dept_fields()
+            }
         prompt = build_prompt(intent_result, database_result)
         response = ask_gemini(prompt)
-        return response or "Sorry, the AI service is currently unavailable. Please try again later."
+        text = response or "Sorry, the AI service is currently unavailable. Please try again later."
+        return {
+            "text": text,
+            "data": database_result,
+            "action": "show_token_status",
+            **_empty_dept_fields()
+        }
 
     elif intent == "op_enquiry":
         database_result = lookup_hospital_info()
         if not database_result:
-            return "Sorry, hospital information is currently unavailable."
+            return {
+                "text": "Sorry, hospital information is currently unavailable.",
+                "data": None,
+                "action": None,
+                **_empty_dept_fields()
+            }
         prompt = build_prompt(intent_result, database_result)
         response = ask_gemini(prompt)
-        return response or "Sorry, the AI service is currently unavailable. Please try again later."
+        text = response or "Sorry, the AI service is currently unavailable. Please try again later."
+        return {
+            "text": text,
+            "data": database_result,
+            "action": None,
+            **_empty_dept_fields()
+        }
 
     elif intent == "token_booking":
-        return (
-            "I can help you book an appointment. "
-            "Please select a department from the list to see available doctors."
-        )
+        return {
+            "text": "I can help you book an appointment. Please select a department from the list to see available doctors.",
+            "data": None,
+            "action": "show_departments",
+            **_empty_dept_fields()
+        }
 
     elif intent == "cancel_token":
-        return "Token cancellation isn't available yet. Please contact the hospital reception directly if you need to cancel your appointment."
+        return {
+            "text": "Token cancellation isn't available yet. Please contact the hospital reception directly if you need to cancel your appointment.",
+            "data": None,
+            "action": None,
+            **_empty_dept_fields()
+        }
 
     elif intent == "unclear":
-        return "Sorry, could you please rephrase that?"
+        return {
+            "text": "Sorry, could you please rephrase that?",
+            "data": None,
+            "action": None,
+            **_empty_dept_fields()
+        }
 
     else:
-        return "Sorry, I couldn't understand your request."
+        return {
+            "text": "Sorry, I couldn't understand your request.",
+            "data": None,
+            "action": None,
+            **_empty_dept_fields()
+        }
 
 
 @app.get("/")
@@ -112,11 +186,23 @@ def home():
 @app.post("/chat")
 def chat(request: ChatRequest):
     try:
-        reply = process_chat(request.message)
-        return {"response": reply}
+        result = process_chat(request.message)
+        return {
+            "response": result["text"],
+            "data": result["data"],
+            "action": result["action"],
+            "department_id": result["department_id"],
+            "department_name": result["department_name"]
+        }
     except Exception as e:
         print(f"Chat endpoint error: {e}")
-        return {"response": "Sorry, something went wrong. Please try again."}
+        return {
+            "response": "Sorry, something went wrong. Please try again.",
+            "data": None,
+            "action": None,
+            "department_id": None,
+            "department_name": None
+        }
 
 
 @app.post("/voice")
@@ -133,25 +219,43 @@ async def voice(audio: UploadFile = File(...)):
                 or transcription_result.get("message")
                 or "Sorry, I couldn't understand the audio. Please try again."
             )
-            return {"reply_text": error_message, "audio_url": None}
+            return {
+                "reply_text": error_message,
+                "audio_url": None,
+                "data": None,
+                "action": None,
+                "department_id": None,
+                "department_name": None
+            }
 
         user_text = transcription_result["transcript"]
 
-        reply_text = process_chat(user_text)
+        result = process_chat(user_text)
 
-        tts_result = speak(reply_text)
+        tts_result = speak(result["text"])
         audio_url = None
         if tts_result.get("success", False):
             audio_url = f"/{tts_result['audio_path']}"
 
         return {
-            "reply_text": reply_text,
+            "reply_text": result["text"],
             "audio_url": audio_url,
-            "audio_base64": tts_result.get("audio_base64")
+            "audio_base64": tts_result.get("audio_base64"),
+            "data": result["data"],
+            "action": result["action"],
+            "department_id": result["department_id"],
+            "department_name": result["department_name"]
         }
     except Exception as e:
         print(f"Voice endpoint error: {e}")
-        return {"reply_text": "Sorry, something went wrong. Please try again.", "audio_url": None}
+        return {
+            "reply_text": "Sorry, something went wrong. Please try again.",
+            "audio_url": None,
+            "data": None,
+            "action": None,
+            "department_id": None,
+            "department_name": None
+        }
 
 
 @app.post("/tts")

@@ -22,3 +22,17 @@ def get_departments():
 
     finally:
         db.close()
+
+
+def get_department_by_name(name):
+    db = SessionLocal()
+    try:
+        dept = db.query(Department).filter(Department.dept_name == name).first()
+        if not dept:
+            return None
+        return {"department_id": dept.id, "department_name": dept.dept_name}
+    except Exception as e:
+        print(f"Department name lookup failed: {e}")
+        return None
+    finally:
+        db.close()
