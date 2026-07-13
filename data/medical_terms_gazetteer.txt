@@ -3,11 +3,6 @@
 # ==========================
 
 Ananthapuri Hospital & Research Institute
-General Hospital Thiruvananthapuram
-Government Medical College Thiruvananthapuram
-Medical College Kozhikode
-District Hospital Thrissur
-
 # ==========================
 # DEPARTMENTS
 # ==========================
@@ -33,79 +28,299 @@ Obstetrics & Gynaecology
 Orthopaedics
 Paediatrics
 Physiotherapy
-Pulmonology
+Pulmanology
 Urology
 
 # ==========================
-# MALAYALAM / COMMON ALIASES
+# ENGLISH ALIASES (with = mapping)
+# ==========================
+
+Heart=Cardiology
+Cardiac=Cardiology
+Cardio=Cardiology
+Vascular=Cardio Thoracic & Vascular Surgery
+Thoracic=Cardio Thoracic & Vascular Surgery
+
+Brain=Neurology
+Neuro=Neurology
+Nerve=Neurology
+Neurosurg=Neurosurgery
+Spine=Neurosurgery
+Spinal=Neurosurgery
+
+Bone=Orthopaedics
+Ortho=Orthopaedics
+Joint=Orthopaedics
+Fracture=Orthopaedics
+
+Skin=Dermatology
+Derma=Dermatology
+Hair=Dermatology
+
+Eye=Emergency Medicine
+Vision=Emergency Medicine
+Ophthal=Emergency Medicine
+
+Ear=ENT
+Nose=ENT
+Throat=ENT
+Tonsil=ENT
+Sinus=ENT
+
+Stomach=Gastroenterology
+Gastro=Gastroenterology
+Liver=Gastroenterology
+Gut=Gastroenterology
+Bowel=Gastroenterology
+
+Child=Paediatrics
+Children=Paediatrics
+Kids=Paediatrics
+Baby=Paediatrics
+Infant=Paediatrics
+Newborn=Neonatology
+Premature=Neonatology
+Neonatal=Neonatology
+
+Kidney=Nephrology
+Renal=Nephrology
+Dialysis=Nephrology
+
+Urine=Urology
+Bladder=Urology
+Prostate=Urology
+Urinary=Urology
+
+Women=Obstetrics & Gynaecology
+Gynecology=Obstetrics & Gynaecology
+Gynaecology=Obstetrics & Gynaecology
+Pregnancy=Obstetrics & Gynaecology
+Maternity=Obstetrics & Gynaecology
+Delivery=Obstetrics & Gynaecology
+
+Infertility=Infertility & Laparoscopy
+IVF=Infertility & Laparoscopy
+Laparoscopy=Infertility & Laparoscopy
+
+Lung=Pulmanology
+Chest=Pulmanology
+Pulmo=Pulmanology
+Asthma=Pulmanology
+TB=Pulmanology
+Respiratory=Pulmanology
+
+Cancer=Cancer Care
+Tumor=Cancer Care
+Oncology=Cancer Care
+Chemo=Cancer Care
+
+Teeth=Dental Maxillofacial Surgery
+Tooth=Dental Maxillofacial Surgery
+Dental=Dental Maxillofacial Surgery
+Jaw=Dental Maxillofacial Surgery
+
+Physio=Physiotherapy
+Rehab=Physiotherapy
+Rehabilitation=Physiotherapy
+
+Radiology=Interventional Radiology
+Angio=Interventional Radiology
+Stent=Interventional Radiology
+
+ICU=Critical Care
+Intensive=Critical Care
+
+Autism=Child Development Centre
+ADHD=Child Development Centre
+Speech=Child Development Centre
+Development=Child Development Centre
+
+Emergency=Emergency Medicine
+Accident=Emergency Medicine
+Urgent=Emergency Medicine
+
+Anaesthesia=Anaesthesiology
+Anesthesia=Anaesthesiology
+Pain=Anaesthesiology
+
+# ==========================
+# MALAYALAM TRANSLITERATED ALIASES (with = mapping)
 # ==========================
 
 Hrudayam=Cardiology
-Heart=Cardiology
+Hridayam=Cardiology
+Nenju=Cardiology
+Nenjuvali=Cardiology
+Nenjuvedana=Cardiology
+Maarbu=Cardiology
 
 Njarambu=Neurology
-Brain=Neurology
+Thalach=Neurology
+Mugacheri=Neurosurgery
+Mugav=Neurosurgery
 
 Elumbu=Orthopaedics
-Bone=Orthopaedics
-Ortho=Orthopaedics
+Elluvali=Orthopaedics
+Kaluvali=Orthopaedics
+Moottu=Orthopaedics
+Moottuvali=Orthopaedics
+Iduppuvali=Orthopaedics
 
 Chevi=ENT
 Mooku=ENT
+Mukkil=ENT
 Thonda=ENT
+Thonsil=ENT
 
-Skin=Dermatology
 Tholi=Dermatology
+Tholvedana=Dermatology
+Chorum=Dermatology
+Choriyal=Dermatology
+Mudi=Dermatology
 
-Kannu=Ophthalmology
-Eye=Ophthalmology
+Kannu=Emergency Medicine
+Kannuvedana=Emergency Medicine
+
+Vayar=Gastroenterology
+Vayarvedana=Gastroenterology
+Manja=Gastroenterology
 
 Kuttikal=Paediatrics
-Children=Paediatrics
+Kutti=Paediatrics
+Kunjinu=Paediatrics
+Mon=Paediatrics
+Mol=Paediatrics
+Makkal=Paediatrics
 
 Pennu=Obstetrics & Gynaecology
-Gynecology=Obstetrics & Gynaecology
-Gynaecology=Obstetrics & Gynaecology
+Garbhini=Obstetrics & Gynaecology
+Prasavam=Obstetrics & Gynaecology
+Masam=Obstetrics & Gynaecology
 
-Kidney=Nephrology
-Urine=Urology
-Cancer=Cancer Care
+Vrikka=Nephrology
+Muthram=Urology
+Muthramburappu=Nephrology
 
-# ==========================
-# COMMON ENGLISH WORDS
-# ==========================
+Shvaasam=Pulmanology
+Cough=Pulmanology
+Chuma=Pulmanology
 
-Hospital
-Doctor
-Department
-OP
-Token
-Appointment
-Booking
-Cancel
-Status
-Available
-Unavailable
-Morning
-Evening
-Today
-Tomorrow
+Arbuda=Cancer Care
+Arbudarogam=Cancer Care
+
+Phal=Dental Maxillofacial Surgery
+Pallu=Dental Maxillofacial Surgery
+
+Pesi=Physiotherapy
+Pesivali=Physiotherapy
 
 # ==========================
-# COMMON MALAYALAM WORDS
+# MALAYALAM SCRIPT ALIASES (with = mapping)
 # ==========================
 
-ആശുപത്രി
-ഡോക്ടർ
-ടോക്കൺ
-ഒ.പി
-അപ്പോയിന്റ്മെന്റ്
-ബുക്കിംഗ്
-റദ്ദാക്കുക
-സ്റ്റാറ്റസ്
-ലഭ്യമാണോ
-ഇന്ന്
-നാളെ
-രാവിലെ
-വൈകുന്നേരം
-ലീവ്
+ഹൃദ്രോഗം=Cardiology
+ഹൃദയം=Cardiology
+നെഞ്ചുവേദന=Cardiology
+നെഞ്ചിടിപ്പ്=Cardiology
+കാർഡിയോളജി=Cardiology
+
+ന്യൂറോളജി=Neurology
+നാഡീരോഗം=Neurology
+തലവേദന=Neurology
+ബ്രെയിൻ=Neurology
+ന്യൂറോസർജറി=Neurosurgery
+മുഗചേരി=Neurosurgery
+
+ഓർത്തോ=Orthopaedics
+എല്ല്=Orthopaedics
+എല്ലുവേദന=Orthopaedics
+കാൽ വേദന=Orthopaedics
+സന്ധിവേദന=Orthopaedics
+ഒർത്തോപീഡിക്സ്=Orthopaedics
+
+ത്വക്ക്=Dermatology
+ഡെർമറ്റോളജി=Dermatology
+ചൊറിച്ചിൽ=Dermatology
+ചർമ്മരോഗം=Dermatology
+തൊലി=Dermatology
+
+ചെവി=ENT
+മൂക്ക്=ENT
+തൊണ്ട=ENT
+ടോൺസിൽ=ENT
+ഇ.എൻ.ടി=ENT
+
+കണ്ണ്=Emergency Medicine
+കണ്ണുവേദന=Emergency Medicine
+
+ഗ്യാസ്ട്രോ=Gastroenterology
+ഉദരരോഗം=Gastroenterology
+വയർ=Gastroenterology
+വയർ വേദന=Gastroenterology
+ഛർദ്ദി=Gastroenterology
+കരൾ=Gastroenterology
+
+ശിശുരോഗം=Paediatrics
+കുട്ടി=Paediatrics
+കുഞ്ഞ്=Paediatrics
+കുട്ടിക്ക് പനി=Paediatrics
+മകൻ=Paediatrics
+മകൾ=Paediatrics
+പീഡിയാട്രിക്സ്=Paediatrics
+
+നവജാതശിശു=Neonatology
+നിയോണേറ്റോളജി=Neonatology
+
+ശ്വാസകോശം=Pulmanology
+ശ്വാസതടസ്സം=Pulmanology
+ചുമ=Pulmanology
+ആസ്ത്മ=Pulmanology
+ക്ഷയം=Pulmanology
+പൾമനോളജി=Pulmanology
+
+വൃക്ക=Nephrology
+വൃക്കരോഗം=Nephrology
+നെഫ്രോളജി=Nephrology
+ഡയാലിസിസ്=Nephrology
+
+മൂത്രതടസ്സം=Urology
+മൂത്രം=Urology
+യൂറോളജി=Urology
+
+ഗർഭം=Obstetrics & Gynaecology
+ഗർഭിണി=Obstetrics & Gynaecology
+പ്രസൂതി=Obstetrics & Gynaecology
+സ്ത്രീരോഗം=Obstetrics & Gynaecology
+ഗൈനക്കോളജി=Obstetrics & Gynaecology
+
+വന്ധ്യത=Infertility & Laparoscopy
+ലാപ്രോസ്കോപ്പി=Infertility & Laparoscopy
+
+കാൻസർ=Cancer Care
+അർബുദം=Cancer Care
+ഓങ്കോളജി=Cancer Care
+
+പല്ല്=Dental Maxillofacial Surgery
+പല്ലുവേദന=Dental Maxillofacial Surgery
+ഡെന്റൽ=Dental Maxillofacial Surgery
+
+ഫിസിയോ=Physiotherapy
+ഫിസിയോതെറാപ്പി=Physiotherapy
+പുനരധിവാസം=Physiotherapy
+
+അടിയന്തരം=Emergency Medicine
+അപകടം=Emergency Medicine
+പനി=Emergency Medicine
+
+ഓട്ടിസം=Child Development Centre
+സ്പീച്ച്=Child Development Centre
+വികാസ കേന്ദ്രം=Child Development Centre
+
+അനസ്തേഷ്യ=Anaesthesiology
+വേദനാ നിവാരണം=Anaesthesiology
+
+ആൻജിയോ=Interventional Radiology
+സ്റ്റെന്റ്=Interventional Radiology
+
+ഐ.സി.യു=Critical Care
+ഇന്റൻസീവ്=Critical Care
