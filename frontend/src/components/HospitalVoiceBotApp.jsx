@@ -34,7 +34,7 @@ const styles = {
 };
 
 export default function HospitalVoiceBotApp() {
-  const [isListening, setIsListening] = useState(false);
+  const [isListening, setIsListening] = useState(true);
   const [showDoctors, setShowDoctors] = useState(false);
   const [deptPage, setDeptPage] = useState(0);
   const [selectedDept, setSelectedDept] = useState(null);
