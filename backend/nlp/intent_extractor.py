@@ -544,7 +544,19 @@ def extract_intent_slots(text: str) -> dict:
         elif slots.get("department"):
             # Department found but unclear action → op enquiry
             final_intent = "op_enquiry"
-
+        elif any(
+            kw in text_lower or kw in text
+            for kw in [
+                "ടോക്കൺ",
+                "ബുക്ക്",
+                "വേണം",
+                "appointment",
+                "token",
+                "book",
+                "slot"
+                        ]
+                ):
+                final_intent = "token_booking"
         else:
             # Truly unclear — ask user to repeat
             return {

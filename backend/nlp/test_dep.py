@@ -1,286 +1,119 @@
-# backend/nlp/test_muril.py
-
 import sys
-import os
 from pathlib import Path
 
-# Add project root to path
+# Add project root
 project_root = Path(__file__).parent.parent.parent
 sys.path.append(str(project_root))
 
-from backend.nlp.intent_extractor import extract_intent_slots, load_model
+from backend.nlp.intent_extractor import load_model, extract_intent_slots
 
-# Load model first
 load_model()
 
-# ── Standard Test Queries ─────────────────────────────────
+
+# ==========================================================
+# MALAYALAM STRESS TEST
+# ==========================================================
+
 test_queries = [
-    # op_enquiry
-    ("Cardiology OP undo?",                    "op_enquiry"),
-    ("Is OP available in ENT today?",          "op_enquiry"),
-    ("ഇന്ന് ഒ.പി ഉണ്ടോ?",                     "op_enquiry"),
-    ("Neurology OP schedule?",                 "op_enquiry"),
-    ("What time does OP start?",               "op_enquiry"),
 
-    # doctor_availability
-    ("Dr. John today available?",              "doctor_availability"),
-    ("Dr. Reshma ഇന്ന് ഉണ്ടോ?",               "doctor_availability"),
-    ("Is Dr. Priya on duty?",                  "doctor_availability"),
-    ("Prof. Dr. Kasi free ano?",               "doctor_availability"),
-    ("Dr. Anand nale undo?",                   "doctor_availability"),
+    # ---------------- BOOKING ----------------
+    ("എനിക്ക് ടോക്കൺ വേണം", "token_booking"),
+    ("എനിക്ക് ഒരു ടോക്കൺ ബുക്ക് ചെയ്യണം", "token_booking"),
+    ("കാർഡിയോളജി വിഭാഗത്തിൽ ടോക്കൺ വേണം", "token_booking"),
+    ("എനിക്ക് ഹൃദയ ഡോക്ടറെ കാണണം", "token_booking"),
+    ("എനിക്ക് കണ്ണ് ഡോക്ടറെ കാണണം", "token_booking"),
+    ("എനിക്ക് ചെവി ഡോക്ടറെ കാണണം", "token_booking"),
+    ("എനിക്ക് വയർ ഡോക്ടറെ കാണണം", "token_booking"),
+    ("എനിക്ക് ന്യൂറോളജി ഡോക്ടറെ കാണണം", "token_booking"),
+    ("ഓർത്തോപീഡിക്സ് ഡോക്ടറെ ബുക്ക് ചെയ്യുക", "token_booking"),
+    ("ഡെർമറ്റോളജി ഡോക്ടറെ ബുക്ക് ചെയ്യണം", "token_booking"),
+    ("നാളെ ടോക്കൺ ബുക്ക് ചെയ്യണം", "token_booking"),
+    ("ഇന്ന് ഒരു ഡോക്ടറെ കാണണം", "token_booking"),
 
-    # token_booking
-    ("Token book cheyyanam",                   "token_booking"),
-    ("I need an appointment with Dr. Rahul",   "token_booking"),
-    ("ഒ.പി ടോക്കൺ വേണം",                      "token_booking"),
-    ("Book me a slot in Cardiology",           "token_booking"),
-    ("Reserve a token for Dr. Priya",          "token_booking"),
+    # ---------------- DOCTOR AVAILABILITY ----------------
+    ("ഇന്ന് കാർഡിയോളജി ഡോക്ടർ ഉണ്ടോ", "doctor_availability"),
+    ("നാളെ ന്യൂറോളജി ഡോക്ടർ ഉണ്ടോ", "doctor_availability"),
+    ("ഇന്ന് ഡെർമറ്റോളജി ഡോക്ടർ ഉണ്ടോ", "doctor_availability"),
+    ("കണ്ണ് ഡോക്ടർ ഇന്ന് ഉണ്ടോ", "doctor_availability"),
+    ("ചെവി ഡോക്ടർ ഇന്ന് ഉണ്ടോ", "doctor_availability"),
+    ("ഹൃദയ ഡോക്ടർ ഇന്ന് ഉണ്ടോ", "doctor_availability"),
+    ("ഓർത്തോപീഡിക്സ് ഡോക്ടർ ലഭ്യമാണോ", "doctor_availability"),
+    ("ഇന്ന് ഡോക്ടർ ഫ്രീ ആണോ", "doctor_availability"),
+    ("കാർഡിയോളജി ഡോക്ടർ ലഭ്യമാണോ", "doctor_availability"),
 
-    # token_status
-    ("Ente token status entha?",               "token_status"),
-    ("What is my token number?",               "token_status"),
-    ("ടോക്കൺ കൺഫേം ആയോ?",          "token_status"),
-    ("Ethra per ond ini",       "token_status"),
-    ("Is my booking confirmed?",               "token_status"),
+    # ---------------- OP ----------------
+    ("ഇന്ന് ഒ.പി ഉണ്ടോ", "op_enquiry"),
+    ("ഒ.പി സമയം എന്താണ്", "op_enquiry"),
+    ("ഒ.പി എപ്പോഴാണ് തുടങ്ങുന്നത്", "op_enquiry"),
+    ("ഒ.പി എത്ര മണിക്ക് തുറക്കും", "op_enquiry"),
+    ("ഇന്ന് ഒ.പി പ്രവർത്തിക്കുന്നുണ്ടോ", "op_enquiry"),
+    ("നാളെ ഒ.പി ഉണ്ടോ", "op_enquiry"),
 
-    # cancel_token
-    ("Token cancel cheyyanam",                 "cancel_token"),
-    ("varan budhimuttu ond",                   "cancel_token"),
-    ("ടോക്കൺ ക്യാൻസൽ ചെയ്യണം",               "cancel_token"),
-    ("Please cancel my token",                 "cancel_token"),
-    ("Ente booking cancel cheyyu",             "cancel_token"),
-]
+    # ---------------- STATUS ----------------
+    ("എന്റെ ടോക്കൺ നമ്പർ എന്താണ്", "token_status"),
+    ("എന്റെ ടോക്കൺ എത്തിയോ", "token_status"),
+    ("എന്റെ ടോക്കൺ സ്ഥിതി പറയൂ", "token_status"),
+    ("ഇനി എത്ര പേർ ബാക്കിയുണ്ട്", "token_status"),
+    ("എന്റെ നമ്പർ എപ്പോഴാണ് വരുന്നത്", "token_status"),
 
-# ── Real World Test Queries ───────────────────────────────
-real_world_queries = [
-    ("njan varaan patilla",          "cancel_token"),
-    ("doctor undo?",                 "doctor_availability"),
-    ("OP",                           "op_enquiry"),
-    ("please help me book",          "token_booking"),
-    ("token evide?",                 "token_status"),
-    ("Monday ravile slot veno?",     "token_booking"),
-    ("aaro doctore kanam",           "token_booking"),
-    ("enthu cheyyum",                "op_enquiry"),
-    ("cancel",                       "cancel_token"),
-    ("book",                         "token_booking"),
-    ("status",                       "token_status"),
-    ("available?",                   "doctor_availability"),
-    ("OP timing?",                   "op_enquiry"),
-    ("token venda",                  "cancel_token"),
-    ("appointment venam",            "token_booking"),
-]
+    # ---------------- CANCEL ----------------
+    ("എന്റെ ടോക്കൺ റദ്ദാക്കണം", "cancel_token"),
+    ("ബുക്ക് ചെയ്ത ടോക്കൺ ഒഴിവാക്കണം", "cancel_token"),
+    ("എനിക്ക് ടോക്കൺ വേണ്ട", "cancel_token"),
+    ("അപ്പോയിന്റ്മെന്റ് റദ്ദാക്കണം", "cancel_token"),
+    ("ബുക്കിംഗ് റദ്ദാക്കുക", "cancel_token"),
 
-# ── Symptom-Based Test Queries ────────────────────────────
-symptom_queries = [
-    ("enikku nenju vedana undu",          "token_booking"),
-    ("ente monu pani",                    "token_booking"),
-    ("ente mol pani",                     "token_booking"),
-    ("kalinu vedana undu",                "token_booking"),
-    ("vayar vedana",                      "token_booking"),
-    ("thalavedhana undu",                 "token_booking"),
-    ("chevi vedana",                      "token_booking"),
-    ("fever undu",                        "token_booking"),
-    ("tol vedana",                        "token_booking"),
-    ("cough undu",                        "token_booking"),
-    ("nenju vedana undu, doctor undo?",   "doctor_availability"),
-    ("ente monu pani, doctor available?", "doctor_availability"),
-    ("fever undu, doctor free aano?",     "doctor_availability"),
-    ("vayar vedana undu, OP undo?",       "op_enquiry"),
-    ("chevi vedana, OP timing enthu?",    "op_enquiry"),
-    ("afasaiasfiadasd",         "none"),
-]
+    # ---------------- SYMPTOMS ----------------
+    ("എനിക്ക് നെഞ്ചുവേദനയുണ്ട്", "token_booking"),
+    ("എനിക്ക് തലവേദനയുണ്ട്", "token_booking"),
+    ("എനിക്ക് വയറുവേദനയുണ്ട്", "token_booking"),
+    ("എനിക്ക് കണ്ണിന് വേദനയുണ്ട്", "token_booking"),
+    ("എനിക്ക് ചെവി വേദനയുണ്ട്", "token_booking"),
+    ("എനിക്ക് പനിയുണ്ട്", "token_booking"),
+    ("എനിക്ക് ശ്വാസതടസ്സമുണ്ട്", "token_booking"),
+    ("എനിക്ക് തൊലിയിൽ ചൊറിച്ചിലുണ്ട്", "token_booking"),
+    ("എനിക്ക് മുട്ടുവേദനയുണ്ട്", "token_booking"),
+    ("എനിക്ക് വൃക്ക വേദനയുണ്ട്", "token_booking"),
 
-# ── Doctor Availability Edge Cases ────────────────────────
-edge_cases = [
-    ("Gastroenterology doctors tomorrow",              "doctor_availability"),
-    ("Doctors available in Cardiology tomorrow", "doctor_availability"),
-    ("Show me Cardiology doctors today",               "doctor_availability"),
-    ("Is there a Cardiology doctor available",   "doctor_availability"),
-    ("List doctors in Neurology innu",          "doctor_availability"),
-    ("നാളെ ENT doctors today",                        "doctor_availability"),
-    ("Any doctors in Dermatology ഞായർ",               "doctor_availability"),
-    ("My knee hurts, is a doctor available",     "doctor_availability"),
-    ("I have chest pain",                        "token_booking"),
-    ("Book a token for Cardiology",              "token_booking"),
-     # OP Enquiry
-    ("ഇന്ന് ഒ.പി ഉണ്ടോ?", "op_enquiry"),
-    ("ഒ.പി സമയം എന്താണ്?", "op_enquiry"),
-    ("ഒ.പി എപ്പോഴാണ് തുടങ്ങുന്നത്?", "op_enquiry"),
-    ("ഇന്ന് ഒ.പി തുറന്നിട്ടുണ്ടോ?", "op_enquiry"),
+    # ---------------- AMBIGUOUS ----------------
+    ("ഡോക്ടർ", "unclear"),
+    ("ടോക്കൺ", "unclear"),
+    ("കാർഡിയോളജി", "unclear"),
+    ("ഹൃദയം", "unclear"),
+    ("ഒ.പി", "op_enquiry"),
 
-    # Doctor Availability
-    ("ഇന്ന് കാർഡിയോളജി ഡോക്ടർ ഉണ്ടോ?", "doctor_availability"),
-    ("നാളെ ന്യൂറോളജി ഡോക്ടർ ലഭ്യമാണോ?", "doctor_availability"),
-    ("കണ്ണ് ഡോക്ടർ ഇന്ന് ഉണ്ടോ?", "doctor_availability"),
-    ("ഹൃദയ വിഭാഗത്തിലെ ഡോക്ടർ ഇപ്പോൾ ഉണ്ടോ?", "doctor_availability"),
-
-    # Token Booking
-    ("എനിക്ക് ഒരു ടോക്കൺ ബുക്ക് ചെയ്യണം.", "token_booking"),
-    ("കാർഡിയോളജി വിഭാഗത്തിൽ ടോക്കൺ വേണം.", "token_booking"),
-    ("എനിക്ക് ഹൃദയ ഡോക്ടറെ കാണണം.", "token_booking"),
-    ("ഓർത്തോപീഡിക്സ് ഡോക്ടറെ ബുക്ക് ചെയ്യുക.", "token_booking"),
-    ("എനിക്ക് കണ്ണ് ഡോക്ടറെ കാണണം.", "token_booking"),
-    ("ഡെർമറ്റോളജി വിഭാഗത്തിൽ സമയം ബുക്ക് ചെയ്യുക.", "token_booking"),
-    ("കാർഡിയോളജി ഡിപ്പാർട്ട്മെന്റിലെ ഏതെങ്കിലും ഒരു ഡോക്ടറിനെ ബുക്ക് ചെയ്യുക.", "token_booking"),
-
-    # Token Status
-    ("എന്റെ ടോക്കൺ നമ്പർ എന്താണ്?", "token_status"),
-    ("എന്റെ ടോക്കൺ എത്തിയോ?", "token_status"),
-    ("എന്റെ ടോക്കൺ സ്ഥിതി പറയൂ.", "token_status"),
-    ("ഇനി എത്ര പേർ ബാക്കിയുണ്ട്?", "token_status"),
-
-    # Cancel Token
-    ("എന്റെ ടോക്കൺ റദ്ദാക്കുക.", "cancel_token"),
-    ("ബുക്ക് ചെയ്ത ടോക്കൺ ഒഴിവാക്കണം.", "cancel_token"),
-    ("എനിക്ക് ടോക്കൺ വേണ്ട.", "cancel_token"),
-    ("എന്റെ അപ്പോയിന്റ്മെന്റ് റദ്ദാക്കണം.", "cancel_token"),
+    # ---------------- GARBAGE ----------------
+    ("asdfasdf", "unclear"),
+    ("......", "unclear"),
+    ("12345", "unclear"),
+    ("@@@###", "unclear"),
 ]
 
 
-# ── Run Tests Function ────────────────────────────────────
-def run_tests(test_set, test_name, show_dept=False):
-    print(f"\n{'=' * 60}")
-    print(f"{test_name} TEST RESULTS")
-    print(f"{'=' * 60}")
+correct = 0
 
-    correct = 0
-    total = len(test_set)
+print("=" * 70)
+print("MALAYALAM NLP STRESS TEST")
+print("=" * 70)
 
-    for query, expected in test_set:
-        result = extract_intent_slots(query)
-        intent = result["intent"]
-        slots = result["slots"]
-        status = "✅" if intent == expected else "❌"
+for query, expected in test_queries:
 
-        if intent == expected:
-            correct += 1
+    result = extract_intent_slots(query)
 
-        print(f"\n{status} Query:    {query}")
-        print(f"   Intent:   {intent} (expected: {expected})")
-        if show_dept:
-            print(f"   Dept:     {slots.get('department', 'None')}")
-            print(f"   Symptom:  {slots.get('has_symptom', False)}")
-        else:
-            print(f"   Slots:    {slots}")
+    intent = result["intent"]
 
-    print(f"\n{'=' * 60}")
-    print(f"{test_name} Accuracy: {correct}/{total} = {correct/total*100:.1f}%")
-    print(f"{'=' * 60}")
+    if intent == expected:
+        status = "✅"
+        correct += 1
+    else:
+        status = "❌"
 
-    return correct, total
+    print(f"\n{status} {query}")
+    print(f"Expected : {expected}")
+    print(f"Predicted: {intent}")
+    print(f"Confidence: {result['confidence']}")
+    print(f"Slots: {result['slots']}")
 
-
-# ── Execute All Tests ─────────────────────────────────────
-standard_correct, standard_total     = run_tests(test_queries,      "STANDARD")
-realworld_correct, realworld_total   = run_tests(real_world_queries, "REAL WORLD")
-symptom_correct, symptom_total       = run_tests(symptom_queries,    "SYMPTOM-BASED", show_dept=True)
-edge_correct, edge_total             = run_tests(edge_cases,         "DOCTOR AVAILABILITY EDGE CASES", show_dept=True)
-
-# ── Final Summary ─────────────────────────────────────────
-print(f"\n{'=' * 60}")
-print("FINAL SUMMARY")
-print(f"{'=' * 60}")
-print(f"Standard Test:        {standard_correct}/{standard_total} = {standard_correct/standard_total*100:.1f}%")
-print(f"Real World Test:      {realworld_correct}/{realworld_total} = {realworld_correct/realworld_total*100:.1f}%")
-print(f"Symptom Test:         {symptom_correct}/{symptom_total} = {symptom_correct/symptom_total*100:.1f}%")
-print(f"Edge Cases Test:      {edge_correct}/{edge_total} = {edge_correct/edge_total*100:.1f}%")
-
-overall_correct = standard_correct + realworld_correct + symptom_correct + edge_correct
-overall_total   = standard_total + realworld_total + symptom_total + edge_total
-overall_accuracy = overall_correct / overall_total * 100
-
-print(f"Overall Accuracy:     {overall_correct}/{overall_total} = {overall_accuracy:.1f}%")
-
-if overall_accuracy >= 85:
-    print("\n✅ Model is performing excellently!")
-elif overall_accuracy >= 75:
-    print("\n⚠️  Model is performing well - acceptable for production")
-else:
-    print("\n❌ Model needs improvement")
-
-# ── Failed Queries Analysis ───────────────────────────────
-print(f"\n{'=' * 60}")
-print("FAILED QUERIES ANALYSIS")
-print(f"{'=' * 60}")
-
-all_tests = [
-    (test_queries,      "Standard"),
-    (real_world_queries,"Real World"),
-    (symptom_queries,   "Symptom"),
-    (edge_cases,        "Edge Case"),
-]
-
-any_failed = False
-for test_set, test_name in all_tests:
-    for query, expected in test_set:
-        result = extract_intent_slots(query)
-        intent = result["intent"]
-        if intent != expected:
-            any_failed = True
-            print(f"❌ [{test_name}] '{query}'")
-            print(f"   Expected:   {expected}")
-            print(f"   Got:        {intent}")
-            print(f"   Confidence: {result.get('confidence', 'N/A')}")
-            print(f"   Slots:      {result.get('slots', {})}")
-            print()
-
-if not any_failed:
-    print("🎉 No failed queries! Perfect performance!")
-
-print(f"{'=' * 60}")
-
-# Debug department extraction
-print("\n" + "=" * 60)
-print("DEBUG: Department Extraction")
-print("=" * 60)
-
-from backend.nlp.intent_extractor import extract_department
-
-test_depts = [
-    "Cardiology doctors tomorrow",
-    "Show me Cardiology doctors",
-    "Is OP available in ENT today",
-    "Doctors available in Cardiology tomorrow",
-    "Any doctors in Dermatology",
-]
-
-for query in test_depts:
-    dept = extract_department(query)
-    print(f"'{query}' → {dept}")
-
-# Comprehensive Debug
-print("\n" + "=" * 60)
-print("COMPREHENSIVE DEBUG")
-print("=" * 60)
-
-from backend.nlp.intent_extractor import load_model, tokenizer, model, alias_map, DEPARTMENTS
-from fuzzywuzzy import process, fuzz
-
-load_model()
-
-test = "Cardiology doctors tomorrow"
-test_lower = test.lower()
-
-print(f"Query: '{test}'")
-print(f"Query lowercase: '{test_lower}'")
-print(f"\n1. Checking gazetteer (alias_map):")
-print(f"   Alias map size: {len(alias_map)}")
-print(f"   Sample aliases: {list(alias_map.items())[:5]}")
-
-for alias, official in alias_map.items():
-    if alias in test_lower:
-        print(f"   ✅ Found in gazetteer: '{alias}' → '{official}'")
-
-print(f"\n2. Checking fuzzy match:")
-print(f"   DEPARTMENTS list: {DEPARTMENTS[:5]}...")
-match, score = process.extractOne(
-    test,
-    DEPARTMENTS,
-    scorer=fuzz.token_sort_ratio
-)
-print(f"   Best match: '{match}' (score: {score})")
-print(f"   Threshold: 75, Result: {'PASS' if score >= 75 else 'FAIL'}")
-
-print(f"\n3. Checking if symptom query:")
-from backend.nlp.symptom_triage import is_symptom_query
-print(f"   Is symptom: {is_symptom_query(test)}")
+print("\n" + "=" * 70)
+print(f"Accuracy : {correct}/{len(test_queries)} = {correct/len(test_queries)*100:.2f}%")
+print("=" * 70)
