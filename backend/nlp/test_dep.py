@@ -102,6 +102,38 @@ edge_cases = [
     ("My knee hurts, is a doctor available",     "doctor_availability"),
     ("I have chest pain",                        "token_booking"),
     ("Book a token for Cardiology",              "token_booking"),
+     # OP Enquiry
+    ("ഇന്ന് ഒ.പി ഉണ്ടോ?", "op_enquiry"),
+    ("ഒ.പി സമയം എന്താണ്?", "op_enquiry"),
+    ("ഒ.പി എപ്പോഴാണ് തുടങ്ങുന്നത്?", "op_enquiry"),
+    ("ഇന്ന് ഒ.പി തുറന്നിട്ടുണ്ടോ?", "op_enquiry"),
+
+    # Doctor Availability
+    ("ഇന്ന് കാർഡിയോളജി ഡോക്ടർ ഉണ്ടോ?", "doctor_availability"),
+    ("നാളെ ന്യൂറോളജി ഡോക്ടർ ലഭ്യമാണോ?", "doctor_availability"),
+    ("കണ്ണ് ഡോക്ടർ ഇന്ന് ഉണ്ടോ?", "doctor_availability"),
+    ("ഹൃദയ വിഭാഗത്തിലെ ഡോക്ടർ ഇപ്പോൾ ഉണ്ടോ?", "doctor_availability"),
+
+    # Token Booking
+    ("എനിക്ക് ഒരു ടോക്കൺ ബുക്ക് ചെയ്യണം.", "token_booking"),
+    ("കാർഡിയോളജി വിഭാഗത്തിൽ ടോക്കൺ വേണം.", "token_booking"),
+    ("എനിക്ക് ഹൃദയ ഡോക്ടറെ കാണണം.", "token_booking"),
+    ("ഓർത്തോപീഡിക്സ് ഡോക്ടറെ ബുക്ക് ചെയ്യുക.", "token_booking"),
+    ("എനിക്ക് കണ്ണ് ഡോക്ടറെ കാണണം.", "token_booking"),
+    ("ഡെർമറ്റോളജി വിഭാഗത്തിൽ സമയം ബുക്ക് ചെയ്യുക.", "token_booking"),
+    ("കാർഡിയോളജി ഡിപ്പാർട്ട്മെന്റിലെ ഏതെങ്കിലും ഒരു ഡോക്ടറിനെ ബുക്ക് ചെയ്യുക.", "token_booking"),
+
+    # Token Status
+    ("എന്റെ ടോക്കൺ നമ്പർ എന്താണ്?", "token_status"),
+    ("എന്റെ ടോക്കൺ എത്തിയോ?", "token_status"),
+    ("എന്റെ ടോക്കൺ സ്ഥിതി പറയൂ.", "token_status"),
+    ("ഇനി എത്ര പേർ ബാക്കിയുണ്ട്?", "token_status"),
+
+    # Cancel Token
+    ("എന്റെ ടോക്കൺ റദ്ദാക്കുക.", "cancel_token"),
+    ("ബുക്ക് ചെയ്ത ടോക്കൺ ഒഴിവാക്കണം.", "cancel_token"),
+    ("എനിക്ക് ടോക്കൺ വേണ്ട.", "cancel_token"),
+    ("എന്റെ അപ്പോയിന്റ്മെന്റ് റദ്ദാക്കണം.", "cancel_token"),
 ]
 
 

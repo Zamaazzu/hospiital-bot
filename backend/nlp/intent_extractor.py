@@ -62,7 +62,9 @@ DOCTOR_AVAILABILITY_SIGNALS = [
     "doctor in ", "is there a doctor",
     "is there an", "doctors available",
     "doctor available in", "doctor available tomorrow",
-    "doctor available today",
+    "doctor available today", "doctor",
+    "ഡോക്ടർ","ഡോക്ടറെ","ഡോക്ടർമാർ","ഉണ്ടോ","ലഭ്യമാണോ",
+    "ഫ്രീ",
 ]
 
 # ── Words that signal token booking intent ────────────────────
@@ -81,6 +83,7 @@ BOOKING_SIGNALS = [
     "doctor kanam", "doctor kaanam",
     "kanaanam", "pettannu",
     "token vangan", "vangan varunnu",
+    "ബുക്ക് ചെയ്യുക", "ബുക്ക് ചെയ്യണം", "ഡോക്ടറിനെ ബുക്ക്",
 ]
 
 # ── Words that signal token status intent ─────────────────────
@@ -229,8 +232,16 @@ def extract_department(text: str) -> str | None:
     # Step 2: Gazetteer aliases (word-boundary match to avoid substring
     # false positives, e.g. "ent" inside "Gastroenterology")
     for alias, official in alias_map.items():
-        if re.search(rf'\b{re.escape(alias)}\b', text_lower):
-            return official
+
+    # Malayalam aliases
+        if any('\u0D00' <= ch <= '\u0D7F' for ch in alias):
+            if alias in text_lower:
+                return official
+
+    # English aliases
+        else:
+            if re.search(rf'\b{re.escape(alias)}\b', text_lower):
+             return official
 
     # Step 3: Exact department name match (case insensitive, word boundary)
     for dept in DEPARTMENTS:
@@ -469,17 +480,41 @@ def extract_intent_slots(text: str) -> dict:
     elif confidence >= 0.50:
 
         # Try signal detection first (most reliable for ambiguous cases)
-        signal_intent = detect_intent_from_signals(text)
+        # OP queries have highest priority
+        if (
+                ("op" in text_lower or "ഒ.പി" in text)
+                and not any(
+                    kw in text_lower
+                    for kw in ["book", "token", "slot", "appointment", "ടോക്കൺ", "ബുക്ക്"]
+                )
+            ):
+                final_intent = "op_enquiry"
 
-        if signal_intent:
-            final_intent = signal_intent
-
-        # OP keyword in text → strongly suggests op_enquiry
-        elif "op" in text_lower and "book" not in text_lower and "token" not in text_lower:
-            final_intent = "op_enquiry"
+        # Otherwise check signal lists
+        elif ( detect_intent_from_signals(text)and not any
+                (
+                kw in text
+                for kw in ["കാണണം", "വേണം", "ടോക്കൺ", "ബുക്ക്"]
+                )
+            ):
+                final_intent = detect_intent_from_signals(text)
 
         # Department + doctor keyword → doctor availability
-        elif slots.get("department") and "doctor" in text_lower and "book" not in text_lower:
+        elif (
+            slots.get("department")
+            and (
+                "doctor" in text_lower
+                or "dr" in text_lower
+                or "ഡോക്ടർ" in text
+            )
+            and not any(
+                kw in text_lower or kw in text
+                for kw in [
+                    "book", "booking", "token", "appointment",
+                    "കാണണം", "വേണം", "ബുക്ക്", "ടോക്കൺ"
+                ]
+            )
+        ):
             final_intent = "doctor_availability"
 
         # Department + booking keyword → token booking
