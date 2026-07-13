@@ -63,6 +63,7 @@ export default function Hero({
   onToggleListening,
   botReply,
   onReply,
+  greetingResetKey,
   showDoctors,
   onOpenDoctors,
   onOpenGeneralOp,
@@ -99,7 +100,12 @@ export default function Hero({
 
       <Conversation isListening={isListening} message={botReply || undefined} />
 
-      <VoiceBot isListening={isListening} onToggle={onToggleListening} onReply={onReply} />
+      <VoiceBot
+        isListening={isListening}
+        onToggle={onToggleListening}
+        onReply={onReply}
+        greetingResetKey={greetingResetKey}
+      />
     </section>
   );
 }

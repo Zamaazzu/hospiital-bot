@@ -1,6 +1,5 @@
 import React from "react";
 import { Bot } from "lucide-react";
-import { GREETING_TEXT } from "../../constants/departments";
 
 const styles = {
   botBubble: {
@@ -53,12 +52,12 @@ const styles = {
 };
 
 /**
- * Shows the assistant's greeting bubble while listening, or a short
- * instructional subtitle otherwise. This is the seam where Person 3/4's
- * real intent + reply text (from /chat) should eventually replace the
- * static GREETING_TEXT.
+ * Shows the assistant's bubble while listening (greeting text while the
+ * greeting is being spoken, then the bot's actual reply once one arrives —
+ * see HospitalVoiceBotApp's handleReply), or a short instructional
+ * subtitle otherwise.
  */
-export default function Conversation({ isListening, message = GREETING_TEXT }) {
+export default function Conversation({ isListening, message = "" }) {
   if (isListening) {
     return (
       <div key="bubble" style={styles.botBubble} className="hvb-bot-bubble">

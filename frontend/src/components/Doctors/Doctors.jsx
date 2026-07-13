@@ -449,21 +449,6 @@ function DoctorBookingForm({ dept, doctor, form, setForm, onSubmit, submitting, 
           <option value="other">Other</option>
         </select>
 
-        <label style={styles.formLabel} htmlFor="booking-phone">
-          Phone
-        </label>
-        <input
-          id="booking-phone"
-          type="tel"
-          required
-          pattern="[0-9]{10}"
-          placeholder="10-digit mobile number"
-          value={form.phone}
-          onChange={(e) => setForm({ ...form, phone: e.target.value })}
-          style={styles.formInput}
-          className="hvb-form-input"
-        />
-
         {submitError && <p style={{ ...styles.generalOpText, color: "#C0392B" }}>{submitError}</p>}
 
         <button type="submit" style={styles.formSubmitBtn} className="hvb-form-submit" disabled={submitting}>
@@ -624,6 +609,7 @@ export default function Doctors({
   setOpForm,
   opFormSubmitted,
   setOpFormSubmitted,
+  onBookingComplete,
 }) {
   const [departments, setDepartments] = useState([]);
   const [loadingDepartments, setLoadingDepartments] = useState(true);
@@ -634,7 +620,7 @@ export default function Doctors({
   const [doctorsLoadError, setDoctorsLoadError] = useState(null);
 
   const [selectedDoctor, setSelectedDoctor] = useState(null);
-  const [bookingForm, setBookingForm] = useState({ name: "", age: "", gender: "", phone: "" });
+  const [bookingForm, setBookingForm] = useState({ name: "", age: "", gender: "" });
   const [bookedToken, setBookedToken] = useState(null);
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState(null);
@@ -687,7 +673,7 @@ export default function Doctors({
   // token/form doesn't linger the next time it's opened.
   useEffect(() => {
     setSelectedDoctor(null);
-    setBookingForm({ name: "", age: "", gender: "", phone: "" });
+    setBookingForm({ name: "", age: "", gender: "" });
     setBookedToken(null);
     setSubmitError(null);
   }, [selectedDept]);
@@ -695,7 +681,7 @@ export default function Doctors({
   useEffect(() => {
     if (!show) {
       setSelectedDoctor(null);
-      setBookingForm({ name: "", age: "", gender: "", phone: "" });
+      setBookingForm({ name: "", age: "", gender: "" });
       setBookedToken(null);
       setSubmitError(null);
     }
@@ -716,7 +702,7 @@ export default function Doctors({
   const handleBack = () => {
     if (bookedToken || selectedDoctor) {
       setSelectedDoctor(null);
-      setBookingForm({ name: "", age: "", gender: "", phone: "" });
+      setBookingForm({ name: "", age: "", gender: "" });
       setBookedToken(null);
       setSubmitError(null);
       return;
@@ -734,7 +720,6 @@ export default function Doctors({
         name: bookingForm.name,
         age: bookingForm.age,
         gender: bookingForm.gender,
-        phone: bookingForm.phone,
       });
 
       if (result.success === false) {
@@ -752,6 +737,7 @@ export default function Doctors({
         hospital: result.hospital,
         reportTime: result.report_time,
       });
+      if (onBookingComplete) onBookingComplete();
     } catch (err) {
       setSubmitError(err.message || "Booking failed. Please try again.");
     } finally {
