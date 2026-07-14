@@ -231,11 +231,8 @@ Generate a short, polite and professional response.
 
 Use only the doctor information provided.
 
-If multiple doctors are available,
-list them clearly.
-
-If only one doctor is available,
-inform the user.
+Do NOT list or say individual doctor names in your response.
+Simply mention how many doctors are available and invite the user to view the list on screen.
 
 Do not assume the user wants to book an appointment 
 unless they explicitly ask to do so."""
