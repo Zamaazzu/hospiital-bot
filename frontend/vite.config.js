@@ -12,7 +12,7 @@ export default defineConfig({
       // (avoids CORS errors). Target comes from VITE_BACKEND_URL in your
       // root .env — falls back to localhost:8000 if that's not set.
       "/api": {
-        target: process.env.VITE_BACKEND_URL || "http://192.168.1.22:8000",
+        target: process.env.VITE_BACKEND_URL || "http://192.168.20.6:8000",
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },
