@@ -1,9 +1,27 @@
 from google import genai
 from backend.config import GEMINI_API_KEY
-
+import requests
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
+def ask_ollama(prompt, model="qwen3:14b"):
+    try:
+        response = requests.post(
+            "http://localhost:11434/api/generate",
+            json={
+                "model": model,
+                "prompt": prompt,
+                "stream": False,
+                "think": False
+            },
+            timeout=60
+        )
+        if response.status_code == 200:
+            return response.json().get("response", "").strip() or None
+        return None
+    except Exception as e:
+        print(f"Ollama fallback error: {e}")
+        return None
 
 def ask_gemini(prompt):
     """
@@ -11,7 +29,7 @@ def ask_gemini(prompt):
     """
     try:
         response = client.models.generate_content(
-            model="gemini-2.5-flash",
+            model="gemini-3.5-flash",
             contents=prompt
         )
 
@@ -19,4 +37,5 @@ def ask_gemini(prompt):
 
     except Exception as e:
         print(f"Gemini API error: {e}")
-        return None
+        print("Falling back to Ollama...")
+        return ask_ollama(prompt)
